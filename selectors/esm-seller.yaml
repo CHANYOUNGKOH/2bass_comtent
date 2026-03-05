@@ -1,0 +1,113 @@
+metadata:
+  name: "ESM+ 판매자센터 (옥션/지마켓)"
+  updated: "2024-03-02"
+  version: "1.0"
+  description: "옥션/지마켓 통합 판매자센터 셀렉터"
+
+urls:
+  login: "https://www.esmplus.com/Member/SignIn/Login"
+  order_list: "https://www.esmplus.com/Escrow/Order/OrderList"
+  claim_list: "https://www.esmplus.com/Escrow/Claim/ClaimList"
+  vat_data: "https://www.esmplus.com/Billing/Settlement"
+
+selectors:
+  login:
+    id_input:
+      selector: '#txtId'
+      type: "css"
+      description: "아이디 입력"
+    pw_input:
+      selector: '#txtPwd'
+      type: "css"
+      description: "비밀번호 입력"
+    login_btn:
+      selector: '#btnLogin'
+      type: "css"
+      description: "로그인 버튼"
+
+  order_management:
+    direct_delivery:
+      tab:
+        selector: 'a[href*="DirectDelivery"]'
+        type: "css"
+      order_list:
+        selector: 'tr.order-row'
+        type: "css"
+      checkbox:
+        selector: 'input[name="chkOrder"]'
+        type: "css"
+      carrier_select:
+        selector: 'select[name="carrierCode"]'
+        type: "css"
+      tracking_input:
+        selector: 'input[name="invoiceNo"]'
+        type: "css"
+      process_btn:
+        selector: '#btnConfirm'
+        type: "css"
+
+    delay:
+      tab:
+        selector: 'a[href*="DelayShip"]'
+        type: "css"
+      order_list:
+        selector: 'tr.delay-row'
+        type: "css"
+      reason_select:
+        selector: 'select[name="delayReason"]'
+        type: "css"
+      process_btn:
+        selector: '#btnDelay'
+        type: "css"
+
+  claim_management:
+    return:
+      tab:
+        selector: 'a[href*="Return"]'
+        type: "css"
+      pending_list:
+        selector: 'tr.return-row'
+        type: "css"
+      checkbox:
+        selector: 'input[name="chkReturn"]'
+        type: "css"
+      approve_btn:
+        selector: '#btnReturnApprove'
+        type: "css"
+      reject_btn:
+        selector: '#btnReturnReject'
+        type: "css"
+
+    exchange:
+      tab:
+        selector: 'a[href*="Exchange"]'
+        type: "css"
+      pending_list:
+        selector: 'tr.exchange-row'
+        type: "css"
+      checkbox:
+        selector: 'input[name="chkExchange"]'
+        type: "css"
+      reject_btn:
+        selector: '#btnExchangeReject'
+        type: "css"
+
+  monthly:
+    vat:
+      period_select:
+        selector: 'select[name="searchPeriod"]'
+        type: "css"
+      download_btn:
+        selector: '#btnExcelDownload'
+        type: "css"
+
+  common:
+    loading:
+      selector: '.loading'
+      type: "css"
+    modal:
+      selector: '.modal-dialog'
+      type: "css"
+    confirm_btn:
+      selector: '.btn-primary'
+      type: "css"

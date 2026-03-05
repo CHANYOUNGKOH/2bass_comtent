@@ -1,0 +1,295 @@
+metadata:
+  name: "네이버 판매자센터"
+  updated: "2024-03-02"
+  version: "1.0"
+  description: "스마트스토어 판매자센터 셀렉터"
+
+urls:
+  login: "https://sell.smartstore.naver.com/login"
+  order_list: "https://sell.smartstore.naver.com/o/v3/n/order-list"
+  claim_list: "https://sell.smartstore.naver.com/o/v3/n/claim-list"
+  direct_delivery: "https://sell.smartstore.naver.com/o/v3/n/direct-delivery"
+  vat_data: "https://sell.smartstore.naver.com/o/seller-info/tax"
+  coupon: "https://sell.smartstore.naver.com/o/marketing/coupon"
+  ad_center: "https://adcenter.naver.com"
+
+selectors:
+  # 로그인 관련
+  login:
+    id_input:
+      selector: '[name="id"]'
+      type: "css"
+      fallback: '#id'
+      description: "아이디 입력 필드"
+    pw_input:
+      selector: '[name="pw"]'
+      type: "css"
+      fallback: '#pw'
+      description: "비밀번호 입력 필드"
+    login_btn:
+      selector: '.btn_login'
+      type: "css"
+      fallback: 'button[type="submit"]'
+      description: "로그인 버튼"
+
+  # 주문 관리
+  order_management:
+    # 직접전달 처리
+    direct_delivery:
+      tab:
+        selector: '[data-menu="direct-delivery"]'
+        type: "css"
+        fallback: 'a:has-text("직접전달")'
+      order_list:
+        selector: '.direct-delivery-order-item'
+        type: "css"
+      checkbox:
+        selector: 'input[type="checkbox"].order-select'
+        type: "css"
+      order_number:
+        selector: '.order-number'
+        type: "css"
+      product_name:
+        selector: '.product-name'
+        type: "css"
+      buyer_name:
+        selector: '.buyer-name'
+        type: "css"
+      carrier_select:
+        selector: 'select.carrier-select'
+        type: "css"
+        description: "택배사 선택"
+      tracking_input:
+        selector: 'input.tracking-number'
+        type: "css"
+        description: "송장번호 입력"
+      process_btn:
+        selector: 'button.btn-process-direct'
+        type: "css"
+        description: "직접전달 처리 버튼"
+
+    # 배송지연 처리
+    delay:
+      tab:
+        selector: '[data-menu="delay"]'
+        type: "css"
+      order_list:
+        selector: '.delay-order-item'
+        type: "css"
+      checkbox:
+        selector: 'input[type="checkbox"].delay-select'
+        type: "css"
+      reason_select:
+        selector: 'select.delay-reason'
+        type: "css"
+        description: "지연 사유 선택"
+      reason_input:
+        selector: 'textarea.delay-reason-detail'
+        type: "css"
+        description: "상세 사유 입력"
+      expected_date:
+        selector: 'input.expected-delivery-date'
+        type: "css"
+        description: "예상 발송일"
+      process_btn:
+        selector: 'button.btn-process-delay'
+        type: "css"
+
+  # 클레임 관리
+  claim_management:
+    # 반품 처리
+    return:
+      tab:
+        selector: '[data-menu="return"]'
+        type: "css"
+        fallback: 'a:has-text("반품")'
+      pending_list:
+        selector: '.return-pending-item'
+        type: "css"
+        description: "반품 대기 목록"
+      checkbox:
+        selector: 'input[type="checkbox"].return-select'
+        type: "css"
+      order_number:
+        selector: '.return-order-number'
+        type: "css"
+      product_name:
+        selector: '.return-product-name'
+        type: "css"
+      return_reason:
+        selector: '.return-reason'
+        type: "css"
+      # 반품 승인
+      approve_btn:
+        selector: 'button.btn-return-approve'
+        type: "css"
+      # 반품 거절
+      reject_btn:
+        selector: 'button.btn-return-reject'
+        type: "css"
+      reject_reason_select:
+        selector: 'select.reject-reason'
+        type: "css"
+      reject_reason_input:
+        selector: 'textarea.reject-reason-detail'
+        type: "css"
+      # 반품 수정
+      modify_btn:
+        selector: 'button.btn-return-modify'
+        type: "css"
+
+    # 교환 처리
+    exchange:
+      tab:
+        selector: '[data-menu="exchange"]'
+        type: "css"
+        fallback: 'a:has-text("교환")'
+      pending_list:
+        selector: '.exchange-pending-item'
+        type: "css"
+      checkbox:
+        selector: 'input[type="checkbox"].exchange-select'
+        type: "css"
+      order_number:
+        selector: '.exchange-order-number'
+        type: "css"
+      reject_btn:
+        selector: 'button.btn-exchange-reject'
+        type: "css"
+      reject_reason_select:
+        selector: 'select.exchange-reject-reason'
+        type: "css"
+      reject_reason_input:
+        selector: 'textarea.exchange-reject-detail'
+        type: "css"
+
+  # 월간 작업
+  monthly:
+    # 부가세 자료
+    vat:
+      tab:
+        selector: '[data-menu="tax-data"]'
+        type: "css"
+      year_select:
+        selector: 'select.vat-year'
+        type: "css"
+      month_select:
+        selector: 'select.vat-month'
+        type: "css"
+      download_sales:
+        selector: 'button.download-sales-data'
+        type: "css"
+        description: "매출 자료 다운로드"
+      download_purchase:
+        selector: 'button.download-purchase-data'
+        type: "css"
+        description: "매입 자료 다운로드"
+      download_btn:
+        selector: 'button.btn-vat-download'
+        type: "css"
+
+    # 쿠폰
+    coupon:
+      tab:
+        selector: '[data-menu="coupon"]'
+        type: "css"
+      coupon_list:
+        selector: '.coupon-item'
+        type: "css"
+      create_btn:
+        selector: 'button.btn-create-coupon'
+        type: "css"
+      coupon_name:
+        selector: 'input.coupon-name'
+        type: "css"
+      discount_type:
+        selector: 'select.discount-type'
+        type: "css"
+      discount_value:
+        selector: 'input.discount-value'
+        type: "css"
+      start_date:
+        selector: 'input.coupon-start-date'
+        type: "css"
+      end_date:
+        selector: 'input.coupon-end-date'
+        type: "css"
+      save_btn:
+        selector: 'button.btn-save-coupon'
+        type: "css"
+
+  # 공통 UI 요소
+  common:
+    loading_spinner:
+      selector: '.loading-spinner'
+      type: "css"
+    modal_overlay:
+      selector: '.modal-overlay'
+      type: "css"
+    confirm_btn:
+      selector: 'button.btn-confirm'
+      type: "css"
+    cancel_btn:
+      selector: 'button.btn-cancel'
+      type: "css"
+    alert_message:
+      selector: '.alert-message'
+      type: "css"
+    success_message:
+      selector: '.success-message'
+      type: "css"
+    error_message:
+      selector: '.error-message'
+      type: "css"
+    pagination:
+      selector: '.pagination'
+      type: "css"
+    next_page:
+      selector: '.pagination .next'
+      type: "css"
+    prev_page:
+      selector: '.pagination .prev'
+      type: "css"
+
+# 지연 사유 옵션
+delay_reasons:
+  - value: "production"
+    label: "제작 지연"
+  - value: "stock"
+    label: "재고 부족"
+  - value: "supplier"
+    label: "공급사 지연"
+  - value: "weather"
+    label: "기상 악화"
+  - value: "holiday"
+    label: "연휴"
+  - value: "other"
+    label: "기타"
+
+# 반품 거절 사유 옵션
+return_reject_reasons:
+  - value: "product_damage"
+    label: "고객 과실로 인한 상품 훼손"
+  - value: "tag_removed"
+    label: "택 제거/훼손"
+  - value: "used"
+    label: "사용 흔적"
+  - value: "period_exceeded"
+    label: "반품 기간 초과"
+  - value: "missing_parts"
+    label: "구성품 누락"
+  - value: "other"
+    label: "기타"
+
+# 교환 거절 사유 옵션
+exchange_reject_reasons:
+  - value: "no_stock"
+    label: "교환 상품 재고 없음"
+  - value: "product_damage"
+    label: "고객 과실로 인한 상품 훼손"
+  - value: "used"
+    label: "사용 흔적"
+  - value: "period_exceeded"
+    label: "교환 기간 초과"
+  - value: "other"
+    label: "기타"

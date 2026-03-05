@@ -1,0 +1,94 @@
+metadata:
+  name: "도매처A"
+  updated: "2024-03-02"
+  version: "1.0"
+  description: "도매처A 셀렉터 (예시 템플릿)"
+
+urls:
+  login: "https://wholesale-a.com/login"
+  order_list: "https://wholesale-a.com/mypage/orders"
+  order_detail: "https://wholesale-a.com/mypage/order/"
+  inquiry: "https://wholesale-a.com/inquiry"
+
+selectors:
+  login:
+    id_input:
+      selector: 'input[name="userId"]'
+      type: "css"
+    pw_input:
+      selector: 'input[name="password"]'
+      type: "css"
+    login_btn:
+      selector: 'button.btn-login'
+      type: "css"
+
+  order_list:
+    table:
+      selector: '.order-table tbody tr'
+      type: "css"
+    order_number:
+      selector: '.order-no'
+      type: "css"
+    order_date:
+      selector: '.order-date'
+      type: "css"
+    status:
+      selector: '.order-status'
+      type: "css"
+    tracking_info:
+      selector: '.tracking-info'
+      type: "css"
+    carrier:
+      selector: '.carrier-name'
+      type: "css"
+    tracking_number:
+      selector: '.tracking-number'
+      type: "css"
+
+  inquiry:
+    order_select:
+      selector: 'select[name="orderNo"]'
+      type: "css"
+    category:
+      selector: 'select[name="category"]'
+      type: "css"
+    title:
+      selector: 'input[name="title"]'
+      type: "css"
+    content:
+      selector: 'textarea[name="content"]'
+      type: "css"
+    submit_btn:
+      selector: 'button.btn-submit'
+      type: "css"
+
+  common:
+    loading:
+      selector: '.loading-overlay'
+      type: "css"
+    pagination:
+      selector: '.pagination'
+      type: "css"
+    next_page:
+      selector: '.pagination .next'
+      type: "css"
+
+# 주문 상태 값
+order_status:
+  - value: "pending"
+    label: "주문접수"
+  - value: "preparing"
+    label: "상품준비중"
+  - value: "shipped"
+    label: "발송완료"
+  - value: "delivered"
+    label: "배송완료"
+
+# 문의 카테고리
+inquiry_categories:
+  - value: "shipping"
+    label: "배송문의"
+  - value: "product"
+    label: "상품문의"
+  - value: "order"
+    label: "주문문의"

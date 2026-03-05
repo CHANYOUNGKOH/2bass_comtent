@@ -1,0 +1,26 @@
+# 민감 정보
+.env
+.env.local
+*.log
+npm-debug.log*
+
+# Node
+node_modules/
+
+# Playwright
+test-results/
+playwright-report/
+
+# Output
+output/
+errors/
+sessions/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+nul
