@@ -24,3 +24,15 @@ sessions/
 .DS_Store
 Thumbs.db
 nul
+
+# ── 사용자 데이터 (로컬 보호) ──
+data/
+env.config
+
+# ── 빌드 산출물 ──
+publish-package/
+publish-ready/
+*.zip
+
+# ── Claude 설정 ──
+.claude/
