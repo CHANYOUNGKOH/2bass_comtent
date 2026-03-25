@@ -746,8 +746,23 @@ async function handler(req, res) {
         });
       }
 
+      // HTML 누락 시 skipped 경로에서도 생성
+      async function ensureHtml() {
+        const htmlFile = path.join(HTML_DIR, `${postId}.html`);
+        if (!fs.existsSync(htmlFile)) {
+          console.log(`[generate] HTML 누락 — 생성: ${postId}`);
+          send('progress', { message: 'HTML 생성 중...' });
+          try {
+            await runScriptSSE(path.join(ROOT, 'scripts/naver-blog-publish-html.js'), [postId]);
+          } catch (e) {
+            console.error(`[generate] HTML 생성 실패:`, e.message);
+          }
+        }
+      }
+
       if (target === 'b1') {
         if (!needB1) {
+          await ensureHtml();
           send('done', { ok: true, postId, target, skipped: true });
           res.end();
           return;
@@ -761,6 +776,7 @@ async function handler(req, res) {
           return;
         }
         if (!needB2) {
+          await ensureHtml();
           send('done', { ok: true, postId, target, skipped: true });
           res.end();
           return;
@@ -769,6 +785,7 @@ async function handler(req, res) {
         await runScriptSSE(genScript, [postId, '--blog2']);
       } else {
         if (!needB1 && !needB2) {
+          await ensureHtml();
           send('done', { ok: true, postId, skipped: true });
           res.end();
           return;
