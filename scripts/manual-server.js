@@ -623,7 +623,7 @@ async function handler(req, res) {
   if (req.method === 'POST' && pathname === '/api/extract-images') {
     try {
       const body = await readBody(req);
-      const { postId } = JSON.parse(body);
+      const { postId, force } = JSON.parse(body);
       if (!postId) return json(res, 400, { error: 'postId 필수' });
 
       res.writeHead(200, {
@@ -637,10 +637,12 @@ async function handler(req, res) {
       }
 
       send('start', { postId });
-      console.log(`[extract-images] ${postId} 시작`);
+      console.log(`[extract-images] ${postId} 시작${force ? ' (force)' : ''}`);
 
       const extractScript = path.join(ROOT, 'scripts/content-extract-images.js');
-      const proc = fork(extractScript, ['--postId', postId], { cwd: ROOT, silent: true });
+      const args = ['--postId', postId];
+      if (force) args.push('--force');
+      const proc = fork(extractScript, args, { cwd: ROOT, silent: true });
 
       proc.stdout.on('data', d => {
         const msg = d.toString().trim();
@@ -656,9 +658,15 @@ async function handler(req, res) {
         } else {
           // manifest에서 추출 결과 읽기
           const manifest = loadManifest();
-          const extracted = manifest[postId]?.count || 0;
-          send('done', { ok: true, postId, count: extracted });
-          console.log(`[extract-images] ${postId} 완료 (${extracted}장)`);
+          const entry = manifest[postId] || {};
+          const extracted = entry.count || 0;
+          const expected = entry.expected || 0;
+          const incomplete = expected > 0 && extracted < expected;
+          send('done', {
+            ok: true, postId, count: extracted,
+            ...(incomplete && { warning: `${expected}장 중 ${extracted}장만 추출됨 (${expected - extracted}장 누락)` })
+          });
+          console.log(`[extract-images] ${postId} 완료 (${extracted}장${incomplete ? ` ⚠ 기대:${expected}` : ''})`);
         }
         res.end();
       });

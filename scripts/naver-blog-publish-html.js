@@ -1898,7 +1898,11 @@ function extractThenGenerate(postId, target) {
             if (evt.type === 'done') {
               var row = ALL_DATA.find(function(r) { return r.id === postId; });
               if (row) row.imgExtracted = evt.count || 0;
-              showToast('📷 추출 완료 (' + (evt.count || 0) + '장) → 블로그 생성...');
+              if (evt.warning) {
+                showToast('⚠ ' + evt.warning);
+              } else {
+                showToast('📷 추출 완료 (' + (evt.count || 0) + '장) → 블로그 생성...');
+              }
               triggerGenerate(postId, target);
             }
             if (evt.type === 'error') {
@@ -1940,6 +1944,11 @@ function render() {
       imgCellContent = '—';
       imgCellClass = '';
       imgCellClick = '';
+    } else if (r.imgExtracted > 0 && r.img > 0 && r.imgExtracted < r.img) {
+      // 불완전 추출: 클릭 시 재추출 가능
+      imgCellContent = '⚠' + r.imgExtracted + '/' + r.img;
+      imgCellClass = ' style="text-align:center; color:#e67700; font-size:12px; font-weight:600; cursor:pointer;" title="' + r.img + '장 중 ' + r.imgExtracted + '장만 추출됨 — 클릭하여 재추출"';
+      imgCellClick = ' data-id="' + r.id + '" data-platform="img" onclick="onExtractImages(&quot;' + r.id + '&quot;, true)"';
     } else if (r.imgExtracted > 0) {
       imgCellContent = '📷' + r.imgExtracted;
       imgCellClass = ' style="text-align:center; color:#03c75a; font-size:12px; font-weight:600;"';
@@ -2005,7 +2014,7 @@ function esc(s) {
 }
 
 // ── Image extraction click handler ──
-function onExtractImages(postId) {
+function onExtractImages(postId, force) {
   if (!SERVER_MODE) {
     showToast('서버 모드에서만 추출 가능합니다. start-dashboard.bat 실행 후 접속하세요.');
     return;
@@ -2014,12 +2023,12 @@ function onExtractImages(postId) {
   var cell = document.querySelector('[data-id="' + postId + '"][data-platform="img"]');
   if (cell) cell.innerHTML = '<span class="spinner"></span>';
 
-  showToast('📷 이미지 추출 시작...');
+  showToast(force ? '📷 이미지 재추출 시작...' : '📷 이미지 추출 시작...');
 
   fetch('/api/extract-images', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ postId: postId })
+    body: JSON.stringify({ postId: postId, force: !!force })
   }).then(function(response) {
     var reader = response.body.getReader();
     var decoder = new TextDecoder();
@@ -2042,7 +2051,11 @@ function onExtractImages(postId) {
               var row = ALL_DATA.find(function(r) { return r.id === postId; });
               if (row) row.imgExtracted = evt.count || 0;
               render();
-              showToast('📷 추출 완료: ' + (evt.count || 0) + '장');
+              if (evt.warning) {
+                showToast('⚠ ' + evt.warning);
+              } else {
+                showToast('📷 추출 완료: ' + (evt.count || 0) + '장');
+              }
             }
             if (evt.type === 'error') {
               showToast('추출 실패: ' + evt.message);

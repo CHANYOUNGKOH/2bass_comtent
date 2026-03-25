@@ -71,8 +71,14 @@ async function extractFromPage(page, seen) {
       if (page.commonObjs.has(name)) page.commonObjs.get(name, resolve);
       else page.objs.get(name, resolve);
     });
-    if (!imgObj?.data) continue;
-    if ((imgObj.width || 0) < MIN_W || (imgObj.height || 0) < MIN_H) continue;
+    if (!imgObj?.data) {
+      if (process.env.DEBUG_EXTRACT) console.log(`    skip ${name}: no data`);
+      continue;
+    }
+    if ((imgObj.width || 0) < MIN_W || (imgObj.height || 0) < MIN_H) {
+      if (process.env.DEBUG_EXTRACT) console.log(`    skip ${name}: ${imgObj.width}x${imgObj.height} < ${MIN_W}x${MIN_H}`);
+      continue;
+    }
     images.push(imgObj);
   }
   return images;
@@ -118,13 +124,14 @@ async function processPdf(pdfPath, posts, manifest, stats) {
     const { postId, pageRange, counts } = post;
     const postDir = path.join(ROOT, OUT_DIR, postId);
 
-    // 이미 추출 완료된 경우 스킵
-    if (manifest[postId]?.done) { stats.skipped++; continue; }
+    // 이미 추출 완료된 경우 스킵 (--force 시 재추출)
+    const force = process.argv.includes('--force');
+    if (manifest[postId]?.done && !force) { stats.skipped++; continue; }
 
     await mkdir(postDir, { recursive: true });
 
     const seen = new Set();
-    const saved = [];
+    let saved = [];
     let idx = 1;
 
     for (let pn = pageRange.start; pn <= Math.min(pageRange.end, pdf.numPages); pn++) {
@@ -141,13 +148,63 @@ async function processPdf(pdfPath, posts, manifest, stats) {
       }
     }
 
-    manifest[postId] = { done: true, count: saved.length, images: saved };
+    let expected = counts?.imageBlocks || 0;
+
+    // 기대값 미달 시 최소 크기 완화하여 재시도 (100x100)
+    if (expected > 0 && saved.length < expected) {
+      const RETRY_MIN_W = 100, RETRY_MIN_H = 100;
+      process.stdout.write(`  [${postId}] ${saved.length}/${expected}장 — 크기 기준 완화(${RETRY_MIN_W}x${RETRY_MIN_H}) 재시도...\n`);
+
+      const origMinW = MIN_W, origMinH = MIN_H;
+      // 임시로 전역 기준 낮춰서 재추출
+      const retryImages = [];
+      const retrySeen = new Set();
+      let retryIdx = 1;
+      for (let pn = pageRange.start; pn <= Math.min(pageRange.end, pdf.numPages); pn++) {
+        let pg;
+        try { pg = await pdf.getPage(pn); } catch { continue; }
+        const opList = await pg.getOperatorList();
+        const names = [];
+        for (let ii = 0; ii < opList.fnArray.length; ii++) {
+          const fn = opList.fnArray[ii];
+          if (fn === pdfjsLib.OPS.paintImageXObject || fn === pdfjsLib.OPS.paintImageXObjectRepeat) {
+            const nm = opList.argsArray[ii][0];
+            if (!retrySeen.has(nm)) { retrySeen.add(nm); names.push(nm); }
+          }
+        }
+        for (const nm of names) {
+          const imgObj = await new Promise(resolve => {
+            if (pg.commonObjs.has(nm)) pg.commonObjs.get(nm, resolve);
+            else pg.objs.get(nm, resolve);
+          });
+          if (!imgObj?.data) continue;
+          if ((imgObj.width || 0) < RETRY_MIN_W || (imgObj.height || 0) < RETRY_MIN_H) continue;
+          const buf = await imgObjToJpeg(imgObj);
+          const fname = `img_${String(retryIdx).padStart(3,'0')}.jpg`;
+          await writeFile(path.join(postDir, fname), buf);
+          retryImages.push({ file: fname, width: imgObj.width, height: imgObj.height, size: buf.length });
+          retryIdx++;
+        }
+      }
+
+      if (retryImages.length > saved.length) {
+        process.stdout.write(`  [${postId}] 재시도 결과: ${retryImages.length}장 (기존 ${saved.length}장)\n`);
+        saved = retryImages;
+      }
+    }
+
+    const isComplete = expected === 0 || saved.length >= expected;
+    manifest[postId] = { done: isComplete, count: saved.length, expected, images: saved };
     stats.processed++;
     stats.images += saved.length;
 
-    const expected = counts?.imageBlocks || 0;
-    const mark = saved.length === expected ? '✓' : `(기대:${expected})`;
-    process.stdout.write(`  [${postId}] ${saved.length}장 ${mark}\n`);
+    if (!isComplete) {
+      const msg = `  ⚠ [${postId}] ${saved.length}장 추출 (기대: ${expected}장) — 누락 ${expected - saved.length}장`;
+      process.stdout.write(msg + '\n');
+      stats.failed++;
+    } else {
+      process.stdout.write(`  [${postId}] ${saved.length}장 ✓\n`);
+    }
   }
 }
 
@@ -167,6 +224,12 @@ async function extractSingle(postId) {
   const pdfPath = findPdf(k.sourceName);
   if (!pdfPath) { console.error('PDF 파일 없음:', k.sourceName); process.exit(1); }
   const stats = { processed: 0, skipped: 0, images: 0, failed: 0 };
+
+  // --force: 기존 manifest 항목 제거하여 재추출 허용
+  if (process.argv.includes('--force') && manifest[postId]) {
+    delete manifest[postId];
+    console.log(`기존 추출 결과 초기화 (force)`);
+  }
 
   console.log(`단건 추출: ${postId}`);
   console.log(`PDF: ${pdfPath}, 페이지: ${k.pageRange.start}-${k.pageRange.end}`);
