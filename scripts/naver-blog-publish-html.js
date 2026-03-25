@@ -418,15 +418,17 @@ function buildPostHtml(post, allPostIds, postIndex, blog2Post) {
   const prevId = postIndex > 0 ? allPostIds[postIndex - 1] : null;
   const nextId = postIndex < allPostIds.length - 1 ? allPostIds[postIndex + 1] : null;
 
-  // SSOT images.files 우선 참조: published JSON의 files가 비어있으면 SSOT에서 가져옴
-  if (post.images && (!post.images.files || post.images.files.length === 0)) {
+  // SSOT images.files 항상 우선 참조: SSOT가 더 많은 파일을 가지고 있으면 교체
+  if (post.images) {
     const ssotPath = path.join(SSOT_DIR, `${post.postId}.json`);
     if (fs.existsSync(ssotPath)) {
       try {
         const ssot = JSON.parse(fs.readFileSync(ssotPath, 'utf8'));
-        if (ssot.images?.files?.length) {
+        if (ssot.images?.files?.length &&
+            ssot.images.files.length > (post.images.files || []).length) {
           post.images.files = ssot.images.files;
         }
+        if (ssot.images?.dir) post.images.dir = ssot.images.dir;
       } catch (_) { /* ignore parse errors */ }
     }
   }
