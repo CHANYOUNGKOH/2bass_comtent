@@ -11,14 +11,38 @@ import path from 'path';
 import { createCanvas, ImageData } from '@napi-rs/canvas';
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 
+import { readdir } from 'fs/promises';
+
 const ROOT        = process.cwd();
 const UNIQUE_PATH = process.env.UNIQUE_PATH   || 'data/content/dedup/posts-unique.json';
-const PDF_DIR     = process.env.PDF_DIR       || 'output/naver-blog-pdfs';
+const PDF_DIRS    = (process.env.PDF_DIR || 'data/work/inbox').split(',').map(d => d.trim());
 const OUT_DIR     = process.env.IMAGE_OUT_DIR || 'output/images';
 const MANIFEST    = path.join(ROOT, OUT_DIR, 'manifest.json');
 const MIN_W       = Number(process.env.IMG_MIN_W || 200);
 const MIN_H       = Number(process.env.IMG_MIN_H || 150);
 const LIMIT       = Number(process.env.IMG_LIMIT  || 0); // 0=전체
+
+// PDF 파일명 → 절대경로 캐시 (하위 디렉토리 재귀 탐색)
+const _pdfCache = new Map();
+async function buildPdfCache() {
+  if (_pdfCache.size) return;
+  for (const dir of PDF_DIRS) {
+    const absDir = path.resolve(ROOT, dir);
+    if (!await exists(absDir)) continue;
+    await _scanDir(absDir);
+  }
+}
+async function _scanDir(dir) {
+  const entries = await readdir(dir, { withFileTypes: true });
+  for (const e of entries) {
+    const full = path.join(dir, e.name);
+    if (e.isDirectory()) await _scanDir(full);
+    else if (e.name.toLowerCase().endsWith('.pdf')) _pdfCache.set(e.name, full);
+  }
+}
+function findPdf(sourceName) {
+  return _pdfCache.get(sourceName) || null;
+}
 
 async function loadJson(p, fallback) {
   try { return JSON.parse(await readFile(p, 'utf8')); }
@@ -139,11 +163,13 @@ async function extractSingle(postId) {
   if (!found) { console.error('postId 없음:', postId); process.exit(1); }
 
   const k = found.keep;
-  const pdfPath = path.join(ROOT, PDF_DIR, k.sourceName);
+  await buildPdfCache();
+  const pdfPath = findPdf(k.sourceName);
+  if (!pdfPath) { console.error('PDF 파일 없음:', k.sourceName); process.exit(1); }
   const stats = { processed: 0, skipped: 0, images: 0, failed: 0 };
 
   console.log(`단건 추출: ${postId}`);
-  console.log(`PDF: ${k.sourceName}, 페이지: ${k.pageRange.start}-${k.pageRange.end}`);
+  console.log(`PDF: ${pdfPath}, 페이지: ${k.pageRange.start}-${k.pageRange.end}`);
 
   await processPdf(pdfPath, [{
     postId:    k.postId,
@@ -178,6 +204,7 @@ async function main() {
   const manifest   = await loadJson(MANIFEST, {});
 
   await mkdir(path.join(ROOT, OUT_DIR), { recursive: true });
+  await buildPdfCache();
 
   const byPdf = {};
   for (const p of allPosts) {
@@ -192,8 +219,8 @@ async function main() {
 
   for (const pdfName of pdfList) {
     if (LIMIT && stats.processed >= LIMIT) break;
-    const pdfPath = path.join(ROOT, PDF_DIR, pdfName);
-    if (!await exists(pdfPath)) { stats.failed++; continue; }
+    const pdfPath = findPdf(pdfName);
+    if (!pdfPath) { stats.failed++; continue; }
 
     pdfDone++;
     console.log(`\n[${pdfDone}/${pdfList.length}] ${pdfName}`);
