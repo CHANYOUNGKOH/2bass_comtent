@@ -576,8 +576,7 @@ function buildPostHtml(post, allPostIds, postIndex, blog2Post) {
   </div>` : ''}
 
   ${(() => {
-    const imgDir = (post.images?.dir || 'output/images/' + post.postId)
-      .replace(/^output\//, '');  // → "images/cnt_xxx"
+    const imgDir = post.images?.dir || path.join('output', 'images', post.postId);
     const imgFileList = (post.images?.files || []);
     const seoNames = (post.images?.seoFileNames || []);
     const alts = (post.images?.imageAlts || []);
@@ -587,12 +586,12 @@ function buildPostHtml(post, allPostIds, postIndex, blog2Post) {
     let rows = '';
     for (let i = 0; i < totalImgs; i++) {
       const fileName = imgFileList[i] || seoNames[i] || ('사진' + (i+1) + '.jpg');
-      const relPath = imgDir + '/' + fileName;
+      const absPath = path.resolve(ROOT, imgDir, fileName);
       const alt = alts[i] || '';
-      rows += '<div class="ref-row" style="display:flex; align-items:center; gap:8px; margin:2px 0; padding:4px 8px; background:#fff; border-radius:4px; border:1px solid #eee; cursor:pointer;" onclick="copyText(resolveImgAbsPath(IMG_PATHS[' + i + ']), \'사진' + (i+1) + ' 절대경로 복사됨!\')">'
+      rows += '<div class="ref-row" style="display:flex; align-items:center; gap:8px; margin:2px 0; padding:4px 8px; background:#fff; border-radius:4px; border:1px solid #eee; cursor:pointer;" onclick="copyText(IMG_PATHS[' + i + '], \'사진' + (i+1) + ' 절대경로 복사됨!\')">'
         + '<span style="font-size:12px; color:#888; font-weight:600; min-width:30px;">📷' + (i+1) + '.</span>'
-        + '<span style="font-size:12px; color:#555; font-family:monospace; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + escapeHtml(relPath) + '</span>'
-        + '<button class="ref-btn" onclick="event.stopPropagation(); copyText(resolveImgAbsPath(IMG_PATHS[' + i + ']), \'경로 복사됨!\')">복사</button>'
+        + '<span style="font-size:12px; color:#555; font-family:monospace; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + escapeHtml(absPath) + '</span>'
+        + '<button class="ref-btn" onclick="event.stopPropagation(); copyText(IMG_PATHS[' + i + '], \'경로 복사됨!\')">복사</button>'
         + '</div>';
     }
     return '<div class="ref-row" style="margin-top:8px;"><span class="label">📷 이미지 경로 (' + totalImgs + '장) — 클릭하여 전체 경로 복사:</span></div>' + rows;
@@ -669,8 +668,7 @@ const IMG_FILES = ${JSON.stringify((() => {
 })())};
 const BANNER_LABEL = '매장 배너';
 const IMG_PATHS = ${JSON.stringify((() => {
-  const imgDir = (post.images?.dir || 'output/images/' + post.postId)
-    .replace(/^output\//, '');  // → "images/cnt_xxx"
+  const imgDir = post.images?.dir || path.join('output', 'images', post.postId);
   const imgFileList = post.images?.files || [];
   const seoNames = post.images?.seoFileNames || [];
   const posCount = (post.images?.positions || []).length;
@@ -678,7 +676,7 @@ const IMG_PATHS = ${JSON.stringify((() => {
   const paths = [];
   for (let i = 0; i < total; i++) {
     const fileName = imgFileList[i] || seoNames[i] || ('사진' + (i+1) + '.jpg');
-    paths.push(imgDir + '/' + fileName);
+    paths.push(path.resolve(ROOT, imgDir, fileName));
   }
   return paths;
 })())};

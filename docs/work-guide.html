@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>작업 기록 가이드 — 투베이스</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700&display=swap');
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 0; font-family: '나눔고딕','NanumGothic','Malgun Gothic',sans-serif; background: #fafafa; color: #333; }
+
+  .container { max-width: 760px; margin: 0 auto; padding: 20px; }
+
+  /* ── Header ── */
+  .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .header h1 { font-size: 22px; color: #222; margin: 0; }
+  .header a { color: #1a73e8; text-decoration: none; font-size: 13px; }
+  .subtitle { font-size: 14px; color: #888; margin-bottom: 24px; }
+
+  /* ── Tier Banner ── */
+  .tier-banner {
+    position: sticky; top: 0; z-index: 10;
+    padding: 10px 16px; font-size: 14px; font-weight: 700; color: #fff;
+    border-radius: 8px; margin-bottom: 16px;
+  }
+  .tier-essential { background: #2e7d32; }
+  .tier-recommended { background: #1565c0; }
+  .tier-bonus { background: #616161; }
+
+  /* ── Card ── */
+  .guide-card {
+    background: #fff; border-radius: 10px; box-shadow: 0 1px 6px rgba(0,0,0,.06);
+    margin-bottom: 16px; overflow: hidden; border-left: 4px solid #ccc;
+  }
+  .guide-card.essential { border-left-color: #2e7d32; }
+  .guide-card.recommended { border-left-color: #1565c0; }
+  .guide-card.bonus { border-left-color: #9e9e9e; }
+
+  .card-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 20px; background: #2d2d2d; color: #fff; font-size: 15px; font-weight: 700;
+  }
+  .badge {
+    font-size: 11px; padding: 3px 10px; border-radius: 12px; font-weight: 600;
+  }
+  .badge-essential { background: #2e7d32; color: #fff; }
+  .badge-recommended { background: #1565c0; color: #fff; }
+  .badge-bonus { background: #757575; color: #fff; }
+
+  .card-content { padding: 16px 20px; line-height: 1.7; font-size: 14px; }
+  .card-content .field-name { font-size: 12px; color: #888; font-family: 'Consolas','Courier New',monospace; margin-bottom: 6px; }
+
+  .card-content dt { font-weight: 700; color: #555; font-size: 13px; margin-top: 10px; }
+  .card-content dt:first-child { margin-top: 0; }
+  .card-content dd { margin: 4px 0 0 0; font-size: 14px; }
+  .card-content .example { background: #f5f5f5; padding: 8px 12px; border-radius: 6px; font-size: 13px; color: #444; margin-top: 4px; }
+  .card-content .effect { background: #e8f5e9; padding: 8px 12px; border-radius: 6px; font-size: 13px; color: #2e7d32; margin-top: 4px; }
+  .card-content .tip { background: #fff8e1; padding: 8px 12px; border-radius: 6px; font-size: 13px; color: #f57f17; margin-top: 8px; }
+
+  /* ── Flowchart ── */
+  .flowchart-section {
+    background: #fff; border-radius: 10px; box-shadow: 0 1px 6px rgba(0,0,0,.06);
+    padding: 20px; margin-top: 32px;
+  }
+  .flowchart-section h2 { font-size: 18px; margin: 0 0 16px 0; color: #222; }
+
+  .flow-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 14px; margin-bottom: 8px; border-radius: 8px;
+    font-size: 14px; background: #f9f9f9; transition: background .2s;
+  }
+  .flow-row:hover { background: #f0f0f0; }
+  .flow-condition { flex: 1; color: #555; }
+  .flow-arrow { color: #aaa; font-size: 18px; flex-shrink: 0; }
+  .flow-result { font-weight: 700; white-space: nowrap; }
+  .flow-result.tech { color: #d84315; }
+  .flow-result.compare { color: #1565c0; }
+  .flow-result.story { color: #6a1b9a; }
+  .flow-result.guide { color: #2e7d32; }
+  .flow-result.case { color: #37474f; }
+
+  /* ── Footer ── */
+  .footer { text-align: center; padding: 32px 0 24px; font-size: 12px; color: #bbb; }
+
+  /* ── Mobile ── */
+  @media (max-width: 600px) {
+    .container { padding: 12px; }
+    .card-content { padding: 14px 16px; font-size: 15px; }
+    .card-header { padding: 12px 16px; font-size: 14px; }
+    .flow-row { flex-wrap: wrap; gap: 4px; }
+    .flow-arrow { display: none; }
+    .flow-result { width: 100%; padding-left: 8px; border-left: 3px solid #ddd; margin-top: 4px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- ═══ Header ═══ -->
+  <div class="header">
+    <h1>작업 기록 가이드</h1>
+    <a href="new-post-form.html" id="formLink">포스팅 등록 &rarr;</a>
+  </div>
+  <div class="subtitle">작업 중 이것만 메모해두면 블로그가 자동으로 완성됩니다</div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- Tier 1: 필수                            -->
+  <!-- ═══════════════════════════════════════ -->
+  <div class="tier-banner tier-essential">Tier 1 &mdash; 필수 (없으면 블로그 생성 불가)</div>
+
+  <!-- 카드 1: 차량 정보 -->
+  <div class="guide-card essential">
+    <div class="card-header">
+      <span>1. 차량 정보</span>
+      <span class="badge badge-essential">&#11088; 필수</span>
+    </div>
+    <div class="card-content">
+      <div class="field-name">&rarr; vehicle.brand, vehicle.model</div>
+      <dl>
+        <dt>뭘 기록?</dt>
+        <dd>브랜드 + 정확한 모델명</dd>
+        <dt>예시</dt>
+        <dd class="example">"그랜저 TG" (O) &nbsp;vs&nbsp; "그랜저" (&Delta;) &mdash; 세대 구분 필수</dd>
+        <dt>블로그 효과</dt>
+        <dd class="effect">제목에 차량명 포함 &rarr; SEO 검색 유입 핵심.<br>"그랜저 TG 브레이크 업그레이드" 같은 제목 자동 생성</dd>
+      </dl>
+    </div>
+  </div>
+
+  <!-- 카드 2: 작업 유형 -->
+  <div class="guide-card essential">
+    <div class="card-header">
+      <span>2. 작업 유형</span>
+      <span class="badge badge-essential">&#11088; 필수</span>
+    </div>
+    <div class="card-content">
+      <div class="field-name">&rarr; work.type</div>
+      <dl>
+        <dt>뭘 기록?</dt>
+        <dd>정확한 작업명</dd>
+        <dt>예시</dt>
+        <dd class="example">"풀셋 브레이크 업그레이드", "패드 교체", "디스크 연마"</dd>
+        <dt>블로그 효과</dt>
+        <dd class="effect">블로그 구조 자체를 결정 (기술심화형 vs 유지보수형 vs 사례형)</dd>
+      </dl>
+    </div>
+  </div>
+
+  <!-- 카드 3: 사용 부품 -->
+  <div class="guide-card essential">
+    <div class="card-header">
+      <span>3. 사용 부품</span>
+      <span class="badge badge-essential">&#11088; 필수</span>
+    </div>
+    <div class="card-content">
+      <div class="field-name">&rarr; work.parts[]</div>
+      <dl>
+        <dt>뭘 기록?</dt>
+        <dd>장착한 부품 전부 (브랜드 + 모델명)</dd>
+        <dt>예시</dt>
+        <dd class="example">"브렘보 GT 6P 캘리퍼", "EBC 옐로우스텁 패드", "DBA 4000 T3 디스크"</dd>
+        <dt>블로그 효과</dt>
+        <dd class="effect">해시태그 자동 매칭 (#브렘보캘리퍼 420회/월)<br>부품 구매 CTA 링크 활성화, 블로그 타입 결정</dd>
+      </dl>
+    </div>
+  </div>
+
+  <!-- 카드 4: 작업 메모 -->
+  <div class="guide-card essential">
+    <div class="card-header">
+      <span>4. 작업 메모</span>
+      <span class="badge badge-essential">&#11088; 필수</span>
+    </div>
+    <div class="card-content">
+      <div class="field-name">&rarr; originalText</div>
+      <dl>
+        <dt>뭘 기록?</dt>
+        <dd>자유롭게 &mdash; 작업 과정, 특이사항, 고객 대화, 느낀 점</dd>
+        <dt>예시</dt>
+        <dd class="example">"너클이 비대칭이라 브라켓 직접 제작. 기존 BMW용 브렘보 6P를 이식. 시운전 후 재점검 완료. 차주분이 제동감에 만족"</dd>
+        <dt>블로그 효과</dt>
+        <dd class="effect"><strong>블로그 본문의 100% 소스.</strong> 여기 없는 내용은 블로그에 절대 안 나옴.<br>구체적일수록 글이 풍부해짐</dd>
+      </dl>
+      <div class="tip">&#128161; 꿀팁: 음성메모 &rarr; 텍스트 변환도 OK. 3줄이면 얇은 글, 10줄이면 풍부한 글</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- Tier 2: 권장                            -->
+  <!-- ═══════════════════════════════════════ -->
+  <div class="tier-banner tier-recommended">Tier 2 &mdash; 권장 (블로그 퀄리티 UP)</div>
+
+  <!-- 카드 5: 핵심 포인트 -->
+  <div class="guide-card recommended">
+    <div class="card-header">
+      <span>5. 핵심 포인트</span>
+      <span class="badge badge-recommended">권장</span>
+    </div>
+    <div class="card-content">
+      <div class="field-name">&rarr; keyPoints[]</div>
+      <dl>
+        <dt>뭘 기록?</dt>
+        <dd>이 작업에서 강조하고 싶은 점 (줄바꿈 구분)</dd>
+        <dt>예시</dt>
+        <dd class="example">"중복투자 방지 / 맞춤형 제작 / 시운전 후 재점검"</dd>
+        <dt>블로그 효과</dt>
+        <dd class="effect">팩트시트 키워드로 활용. 4개 이상이면 "교육형" 블로그 톤 활성화</dd>
+      </dl>
+    </div>
+  </div>
+
+  <!-- 카드 6: 난이도 -->
+  <div class="guide-card recommended">
+    <div class="card-header">
+      <span>6. 난이도</span>
+      <span class="badge badge-recommended">권장</span>
+    </div>
+    <div class="card-content">
+      <div class="field-name">&rarr; difficulty</div>
+      <dl>
+        <dt>뭘 기록?</dt>
+        <dd>하 / 중하 / 중 / 중상 / 상</dd>
+        <dt>블로그 효과</dt>
+        <dd class="effect">"상" 선택 &rarr; "기술 심화형" 블로그 (더 길고 전문적)<br>"하~중" &rarr; "유지보수 가이드형" (쉬운 설명 톤)</dd>
+      </dl>
+    </div>
+  </div>
+
+  <!-- 카드 7: 순정↔튜닝 스펙 비교 -->
+  <div class="guide-card recommended">
+    <div class="card-header">
+      <span>7. 순정&#8596;튜닝 스펙 비교</span>
+      <span class="badge badge-recommended">권장</span>
+    </div>
+    <div class="card-content">
+      <div class="field-name">&rarr; salesContext.specComparison</div>
+      <dl>
+        <dt>뭘 기록?</dt>
+        <dd>Before 스펙 / After 스펙 / 체감 차이</dd>
+        <dt>예시</dt>
+        <dd class="example">"순정 280mm &rarr; 355mm 디스크 + 브렘보 4P / 제동거리 30% 단축"</dd>
+        <dt>블로그 효과</dt>
+        <dd class="effect">"부품 비교형" 블로그 활성화 &mdash; 가장 설득력 있는 구조.<br>수치가 있으면 신뢰도 극대화</dd>
+      </dl>
+    </div>
+  </div>
+
+  <!-- 카드 8: 사진 + 단계 태그 -->
+  <div class="guide-card recommended">
+    <div class="card-header">
+      <span>8. 사진 + 단계 태그</span>
+      <span class="badge badge-recommended">권장</span>
+    </div>
+    <div class="card-content">
+      <div class="field-name">&rarr; images</div>
+      <dl>
+        <dt>뭘 기록?</dt>
+        <dd>작업 전/중/후 사진. 최소 3장 권장</dd>
+        <dt>단계</dt>
+        <dd class="example">입고 &rarr; 분해(Before) &rarr; 장착(During) &rarr; 완성(After) &rarr; 시운전</dd>
+        <dt>블로그 효과</dt>
+        <dd class="effect">단계별로 블로그 본문에 자동 배치. 사진 없으면 텍스트만 나감</dd>
+      </dl>
+      <div class="tip">&#128161; 꿀팁: 5장 이상이면 자동 배분됨 (입고/전/중/후/후)</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- Tier 3: 보너스                          -->
+  <!-- ═══════════════════════════════════════ -->
+  <div class="tier-banner tier-bonus">Tier 3 &mdash; 보너스 (프리미엄 블로그)</div>
+
+  <!-- 카드 9: 고객 증상 -->
+  <div class="guide-card bonus">
+    <div class="card-header">
+      <span>9. 고객 증상</span>
+      <span class="badge badge-bonus">보너스</span>
+    </div>
+    <div class="card-content">
+      <div class="field-name">&rarr; consumer.directDemand.symptom</div>
+      <dl>
+        <dt>뭘 기록?</dt>
+        <dd>고객이 말한 증상 그대로</dd>
+        <dt>예시</dt>
+        <dd class="example">"브레이크 밟을 때 끝까지 밀려요", "고속에서 핸들이 떨려요"</dd>
+        <dt>블로그 효과</dt>
+        <dd class="effect">"증상 공감형" 도입부 활성화 + 증상 해시태그 매칭 (#브레이크떨림 등)</dd>
+      </dl>
+    </div>
+  </div>
+
+  <!-- 카드 10: 소개/레퍼럴 -->
+  <div class="guide-card bonus">
+    <div class="card-header">
+      <span>10. 소개/레퍼럴</span>
+      <span class="badge badge-bonus">보너스</span>
+    </div>
+    <div class="card-content">
+      <div class="field-name">&rarr; salesContext.referral</div>
+      <dl>
+        <dt>뭘 기록?</dt>
+        <dd>어떤 경로로 왔는지</dd>
+        <dt>예시</dt>
+        <dd class="example">"BMW 동호회 추천", "지인 소개"</dd>
+        <dt>블로그 효과</dt>
+        <dd class="effect">"고객 스토리형" 블로그 활성화 &mdash; 감성적 서사 구조</dd>
+      </dl>
+    </div>
+  </div>
+
+  <!-- 카드 11: 무료 서비스 -->
+  <div class="guide-card bonus">
+    <div class="card-header">
+      <span>11. 무료 서비스</span>
+      <span class="badge badge-bonus">보너스</span>
+    </div>
+    <div class="card-content">
+      <div class="field-name">&rarr; salesContext.freeServices</div>
+      <dl>
+        <dt>뭘 기록?</dt>
+        <dd>추가로 해준 것</dd>
+        <dt>예시</dt>
+        <dd class="example">시운전, 하체점검, 브레이크액 보충, 세팅 조정</dd>
+        <dt>블로그 효과</dt>
+        <dd class="effect">"가성비형" 앵글 활성화 &mdash; 무료 서비스 자연스럽게 어필</dd>
+      </dl>
+    </div>
+  </div>
+
+  <!-- 카드 12: 고객 지역 -->
+  <div class="guide-card bonus">
+    <div class="card-header">
+      <span>12. 고객 지역</span>
+      <span class="badge badge-bonus">보너스</span>
+    </div>
+    <div class="card-content">
+      <div class="field-name">&rarr; salesContext.customerRegion</div>
+      <dl>
+        <dt>뭘 기록?</dt>
+        <dd>고객이 어디서 왔는지</dd>
+        <dt>예시</dt>
+        <dd class="example">"대전에서 방문", "부산에서 택배 장착"</dd>
+        <dt>블로그 효과</dt>
+        <dd class="effect">전국 고객 신뢰도. 로컬 SEO 팩트시트에 포함</dd>
+      </dl>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- 블로그 타입 결정 플로차트               -->
+  <!-- ═══════════════════════════════════════ -->
+  <div class="flowchart-section">
+    <h2>블로그 타입 결정 플로차트</h2>
+
+    <div class="flow-row">
+      <span class="flow-condition">난이도 "상" + 커스텀 작업?</span>
+      <span class="flow-arrow">&rarr;</span>
+      <span class="flow-result tech">&#128295; 기술 심화형</span>
+    </div>
+    <div class="flow-row">
+      <span class="flow-condition">스펙 비교 있음?</span>
+      <span class="flow-arrow">&rarr;</span>
+      <span class="flow-result compare">&#128202; 부품 비교형</span>
+    </div>
+    <div class="flow-row">
+      <span class="flow-condition">소개/레퍼럴 있음?</span>
+      <span class="flow-arrow">&rarr;</span>
+      <span class="flow-result story">&#128172; 고객 스토리형</span>
+    </div>
+    <div class="flow-row">
+      <span class="flow-condition">난이도 "하~중"?</span>
+      <span class="flow-arrow">&rarr;</span>
+      <span class="flow-result guide">&#128214; 유지보수 가이드형</span>
+    </div>
+    <div class="flow-row">
+      <span class="flow-condition">기본</span>
+      <span class="flow-arrow">&rarr;</span>
+      <span class="flow-result case">&#128203; 사례 연구형</span>
+    </div>
+  </div>
+
+  <div class="footer">투베이스 블로그 자동화 시스템</div>
+
+</div><!-- .container -->
+
+<script>
+// Server mode: adjust form link
+if (window.__SERVER_MODE__) {
+  var link = document.getElementById('formLink');
+  if (link) link.href = '/new-post';
+}
+</script>
+</body>
+</html>

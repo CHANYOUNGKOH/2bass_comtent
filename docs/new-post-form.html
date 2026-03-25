@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>투베이스 새 포스팅 등록</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700&display=swap');
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 0; font-family: '나눔고딕','NanumGothic','Malgun Gothic',sans-serif; background: #fafafa; }
+  .page-wrap { display: flex; max-width: 1080px; margin: 0 auto; gap: 20px; padding: 20px; }
+  .container { flex: 1; max-width: 760px; margin: 0; padding: 0; }
+
+  .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+  .header h1 { font-size: 22px; color: #222; margin: 0; }
+  .header a { color: #1a73e8; text-decoration: none; font-size: 13px; }
+
+  .card {
+    background: #fff; border-radius: 10px; box-shadow: 0 1px 6px rgba(0,0,0,.06);
+    margin-bottom: 20px; overflow: hidden;
+  }
+  .card-title {
+    padding: 14px 20px; font-size: 15px; font-weight: 700; color: #fff; background: #2d2d2d;
+  }
+  .card-title .num { background: #03c75a; padding: 2px 10px; border-radius: 12px; font-size: 13px; margin-right: 8px; }
+  .card-body { padding: 20px; }
+
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: 13px; font-weight: 600; color: #555; margin-bottom: 5px; }
+  .field .hint { font-size: 11px; color: #aaa; margin-bottom: 4px; }
+  .field input[type="text"], .field textarea, .field select {
+    width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px;
+    font-size: 14px; font-family: inherit; transition: border .2s;
+  }
+  .field input:focus, .field textarea:focus, .field select:focus { border-color: #03c75a; outline: none; }
+  .field textarea { resize: vertical; min-height: 100px; }
+
+  .field-row { display: flex; gap: 12px; }
+  .field-row .field { flex: 1; }
+
+  .parts-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .part-tag {
+    background: #e6f9ed; color: #03c75a; padding: 4px 10px; border-radius: 14px;
+    font-size: 13px; display: flex; align-items: center; gap: 4px;
+  }
+  .part-tag .remove { cursor: pointer; color: #888; font-size: 16px; line-height: 1; }
+  .part-tag .remove:hover { color: #e00; }
+
+  .add-row { display: flex; gap: 8px; }
+  .add-row input { flex: 1; }
+  .add-row button {
+    padding: 8px 16px; background: #03c75a; color: #fff; border: none;
+    border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;
+  }
+
+  .photo-area {
+    border: 2px dashed #ddd; border-radius: 8px; padding: 20px; text-align: center;
+    color: #aaa; font-size: 13px; cursor: pointer; transition: border .2s;
+  }
+  .photo-area:hover { border-color: #03c75a; }
+  .photo-area input { display: none; }
+  .photo-preview { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .photo-preview img {
+    width: 110px; height: 110px; object-fit: cover; border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.1);
+  }
+  .photo-preview .photo-item {
+    position: relative; display: flex; flex-direction: column; align-items: center;
+    width: 130px; padding-bottom: 6px;
+  }
+  .photo-preview .photo-remove {
+    position: absolute; top: -6px; right: -6px; background: #e00; color: #fff;
+    border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 12px;
+    cursor: pointer; line-height: 1;
+  }
+  .photo-preview .photo-stage {
+    width: 130px; margin-top: 6px; padding: 3px 4px; border: 1px solid #ddd;
+    border-radius: 4px; font-size: 11px; font-family: inherit; background: #fff;
+  }
+  .photo-preview .photo-stage:focus { border-color: #03c75a; outline: none; }
+  .photo-preview .photo-order { font-size: 10px; color: #999; margin-top: 2px; }
+  .photo-stage-summary {
+    margin-top: 10px; padding: 10px 14px; background: #f0f8f4; border-radius: 6px;
+    font-size: 12px; color: #555; line-height: 1.6;
+  }
+  .photo-stage-summary strong { color: #03c75a; }
+
+  .key-points-area textarea { min-height: 60px; }
+
+  .btn-group { display: flex; gap: 12px; margin-top: 8px; }
+  .btn {
+    padding: 12px 24px; border: none; border-radius: 8px; font-size: 15px;
+    font-weight: 700; cursor: pointer; flex: 1; text-align: center;
+  }
+  .btn-primary { background: #03c75a; color: #fff; }
+  .btn-primary:hover { background: #02b050; }
+  .btn-secondary { background: #eee; color: #555; }
+  .btn-secondary:hover { background: #ddd; }
+
+  .toast {
+    position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+    background: #333; color: #fff; padding: 10px 24px; border-radius: 8px;
+    font-size: 14px; z-index: 99; opacity: 0; transition: opacity .3s;
+  }
+  .toast.show { opacity: 1; }
+
+  .note {
+    font-size: 13px; color: #888; background: #f9f9f9; padding: 12px 16px;
+    border-radius: 8px; border-left: 3px solid #03c75a; margin: 12px 0; line-height: 1.5;
+  }
+
+  .save-result {
+    margin-top: 12px; padding: 12px 16px; background: #e6f9ed; border-radius: 8px;
+    font-size: 14px; display: none;
+  }
+  .save-result a { color: #03c75a; font-weight: 700; }
+
+  .chip-group { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+  .chip {
+    padding: 5px 12px; border: 1px solid #ddd; border-radius: 16px;
+    font-size: 13px; cursor: pointer; background: #fff; transition: all .2s;
+    user-select: none;
+  }
+  .chip.active { background: #03c75a; color: #fff; border-color: #03c75a; }
+
+  /* 사이드바 */
+  .guide-sidebar { width: 260px; flex-shrink: 0; }
+  .guide-sidebar-inner {
+    position: sticky; top: 20px;
+    background: #f0f8f4; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,.1);
+    padding: 16px; max-height: calc(100vh - 40px); overflow-y: auto;
+  }
+  .guide-sidebar-title {
+    font-size: 15px; font-weight: 700; color: #222;
+    padding-bottom: 10px; border-bottom: 2px solid #03c75a; margin-bottom: 8px;
+  }
+  .guide-progress {
+    font-size: 13px; color: #03c75a; font-weight: 700;
+    margin-bottom: 12px; letter-spacing: 1px;
+  }
+  .guide-section {}
+  .guide-section-title {
+    font-size: 13px; font-weight: 700; padding: 8px 0;
+    color: #555; cursor: pointer; border-bottom: 1px solid #e0e0e0;
+    display: flex; justify-content: space-between; align-items: center;
+    user-select: none;
+  }
+  .guide-section-title:hover { color: #333; }
+  .guide-section.active .guide-section-title { color: #03c75a; }
+  .guide-section.done .guide-section-title::after { content: '\2713'; color: #03c75a; font-size: 14px; }
+  .guide-section-body {
+    margin: 0; padding: 0 0 0 16px; font-size: 13px; color: #555; line-height: 1.7;
+    max-height: 0; overflow: hidden; transition: max-height .3s ease;
+  }
+  .guide-section.active .guide-section-body {
+    max-height: 200px; padding-top: 4px; padding-bottom: 8px;
+  }
+  .guide-section-body li { margin-bottom: 4px; }
+
+  @media (max-width: 960px) {
+    .page-wrap { flex-direction: column; padding: 20px; }
+    .guide-sidebar {
+      width: 100%; position: fixed; bottom: 0; left: 0; z-index: 50;
+      padding: 0;
+    }
+    .guide-sidebar-inner {
+      position: static; border-radius: 16px 16px 0 0;
+      box-shadow: 0 -2px 12px rgba(0,0,0,.1);
+      max-height: 50vh; padding: 12px 16px;
+    }
+    .guide-sidebar.collapsed .guide-sidebar-inner {
+      max-height: 44px; overflow: hidden;
+    }
+    .guide-sidebar.collapsed .guide-section,
+    .guide-sidebar.collapsed .guide-progress { display: none; }
+    .guide-sidebar-title { cursor: pointer; margin-bottom: 8px; }
+    .guide-sidebar.collapsed .guide-sidebar-title { margin-bottom: 0; }
+    .guide-sidebar.collapsed .guide-sidebar-title::after {
+      content: attr(data-progress);
+      margin-left: 8px; font-size: 12px; color: #03c75a; font-weight: 700;
+    }
+    .container { padding-bottom: 120px !important; }
+  }
+</style>
+</head>
+<body>
+<div class="page-wrap">
+<div class="container">
+
+  <div class="header">
+    <h1>새 포스팅 등록</h1>
+    <div style="display:flex;gap:16px;align-items:center;">
+      <a href="work-guide.html" id="guideLink">&#128203; 작업 가이드</a>
+      <a href="_index.html" id="dashboardLink">&larr; 대시보드</a>
+    </div>
+  </div>
+
+  <div class="note">
+    작업 완료 후 아래 양식을 채워주세요. <strong>차량, 작업, 부품, 메모</strong>만 입력하면 SSOT가 생성됩니다.<br>
+    저장된 SSOT 데이터로 네이버 블로그 / 인스타 / 당근 글이 자동 작성됩니다.
+  </div>
+
+  <!-- ═══ 1. 차량 정보 ═══ -->
+  <div class="card" data-section="section-1">
+    <div class="card-title"><span class="num">1</span> 차량 정보</div>
+    <div class="card-body">
+      <div class="field-row">
+        <div class="field">
+          <label>브랜드 *</label>
+          <input type="text" id="brand" placeholder="예: 현대, BMW, 토요타" list="brandList" oninput="onBrandChange()">
+          <datalist id="brandList"></datalist>
+        </div>
+        <div class="field">
+          <label>모델 *</label>
+          <input type="text" id="model" placeholder="예: 그랜저 TG, X6, 시에나" list="modelList">
+          <datalist id="modelList"></datalist>
+        </div>
+      </div>
+      <div class="field">
+        <label>차량 특이사항</label>
+        <div class="hint">연식, 상태, 특징 등 (선택)</div>
+        <input type="text" id="vehicleNote" placeholder="예: 하이브리드, 깔끔한 상태, 주행거리 15만km">
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 2. 작업 정보 ═══ -->
+  <div class="card" data-section="section-2">
+    <div class="card-title"><span class="num">2</span> 작업 정보</div>
+    <div class="card-body">
+      <div class="field">
+        <label>작업 유형 *</label>
+        <input type="text" id="workType" placeholder="예: 풀셋 브레이크 업그레이드, 패드 교체, 디스크 연마" list="workList" oninput="onWorkTypeChange()">
+        <datalist id="workList"></datalist>
+      </div>
+
+      <div class="field">
+        <label>사용 부품 *</label>
+        <div class="hint">부품명을 입력하고 [추가] 버튼을 눌러주세요</div>
+        <div class="add-row">
+          <input type="text" id="partInput" placeholder="예: 브렘보 4P 캘리퍼" list="partList"
+                 onkeydown="if(event.key==='Enter'){event.preventDefault();addPart();}">
+          <button onclick="addPart()">+ 추가</button>
+        </div>
+        <datalist id="partList"></datalist>
+        <div id="suggestedParts" style="display:none; margin-top:8px;">
+          <div class="hint" style="margin-bottom:4px;">자주 쓰는 부품 (클릭하여 추가)</div>
+          <div id="suggestedPartsButtons" style="display:flex; flex-wrap:wrap; gap:4px;"></div>
+        </div>
+        <div class="parts-list" id="partsList"></div>
+      </div>
+
+      <div class="field">
+        <label>고객 문제/증상</label>
+        <div class="hint">자주 쓰는 증상을 클릭하세요 (복수 선택 가능)</div>
+        <div class="chip-group" id="symptomChips">
+          <span class="chip" onclick="toggleChip(this)">떨림</span>
+          <span class="chip" onclick="toggleChip(this)">소음</span>
+          <span class="chip" onclick="toggleChip(this)">밀림</span>
+          <span class="chip" onclick="toggleChip(this)">쏠림</span>
+          <span class="chip" onclick="toggleChip(this)">편마모</span>
+          <span class="chip" onclick="toggleChip(this)">고착</span>
+        </div>
+        <input type="text" id="symptomCustom" placeholder="예: 고속에서 핸들 떨림, 디스크 변형 의심">
+      </div>
+      <div class="field">
+        <label>해결 방법</label>
+        <input type="text" id="solution" placeholder="예: 브라켓 자체 제작으로 해결">
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>작업 시간</label>
+          <input type="text" id="duration" placeholder="예: 당일 완료, 3시간" list="durationList">
+          <datalist id="durationList">
+            <option value="당일 완료"><option value="2시간"><option value="3시간">
+            <option value="4시간"><option value="반나절"><option value="1일">
+          </datalist>
+        </div>
+        <div class="field">
+          <label>난이도</label>
+          <select id="difficulty">
+            <option value="">선택</option>
+            <option value="하">하 (단순 교체)</option>
+            <option value="중하">중하</option>
+            <option value="중">중 (일반 작업)</option>
+            <option value="중상">중상</option>
+            <option value="상">상 (커스텀/제작)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>긴급도</label>
+          <select id="urgency">
+            <option value="">선택</option>
+            <option value="high">높음 (안전 이슈)</option>
+            <option value="medium">보통</option>
+            <option value="low">낮음 (예방 정비)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 3. 작업 메모 ═══ -->
+  <div class="card" data-section="section-3">
+    <div class="card-title"><span class="num">3</span> 작업 메모 (자유 서술)</div>
+    <div class="card-body">
+      <div class="field">
+        <div class="hint">작업하면서 느낀 점, 특이사항, 고객 대화 등 자유롭게 적어주세요. 이 내용을 기반으로 블로그 글이 작성됩니다.</div>
+        <textarea id="memo" rows="6" placeholder="예: 너클이 비대칭이라 브라켓 직접 제작함. 기존 BMW에 사용하던 브렘보 6P를 이식. 시운전 후 재점검 완료. 차주분이 제동감에 만족하심."></textarea>
+      </div>
+      <div class="field">
+        <label>핵심 포인트 (강조할 점)</label>
+        <div class="hint">줄바꿈으로 구분, 없으면 비워도 됩니다</div>
+        <textarea id="keyPoints" rows="3" class="key-points-area" placeholder="예:&#10;중복투자 방지&#10;맞춤형 제작&#10;시운전 후 재점검"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 4. 추가 정보 (선택) ═══ -->
+  <div class="card" data-section="section-4">
+    <div class="card-title"><span class="num">4</span> 추가 정보 (선택 — 있으면 글 퀄리티 UP)</div>
+    <div class="card-body">
+      <div class="field-row">
+        <div class="field">
+          <label>소개/레퍼럴</label>
+          <input type="text" id="referral" placeholder="예: 지인 소개, 동호회 추천">
+        </div>
+        <div class="field">
+          <label>고객 지역</label>
+          <input type="text" id="region" placeholder="예: 대전에서 방문, 서울">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>순정 스펙 (Before)</label>
+          <input type="text" id="specBefore" placeholder="예: 순정 280mm 디스크">
+        </div>
+        <div class="field">
+          <label>튜닝 스펙 (After)</label>
+          <input type="text" id="specAfter" placeholder="예: 355mm 디스크 + 브렘보 4P">
+        </div>
+        <div class="field">
+          <label>체감 개선</label>
+          <input type="text" id="improvement" placeholder="예: 제동거리 30% 단축">
+        </div>
+      </div>
+      <div class="field">
+        <label>무료 서비스</label>
+        <div class="hint">제공한 무료 서비스를 클릭하세요</div>
+        <div class="chip-group" id="freeServiceChips">
+          <span class="chip" onclick="toggleChip(this)">시운전</span>
+          <span class="chip" onclick="toggleChip(this)">하체점검</span>
+          <span class="chip" onclick="toggleChip(this)">브레이크액 보충</span>
+          <span class="chip" onclick="toggleChip(this)">세팅 조정</span>
+          <span class="chip" onclick="toggleChip(this)">도장 터치업</span>
+        </div>
+        <input type="text" id="freeServiceCustom" placeholder="예: 유압라인 점검, 브렘보 스티커 부착">
+      </div>
+      <div class="field">
+        <label>기타</label>
+        <input type="text" id="extra" placeholder="예: 2회차 방문, 가격 힌트 등">
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 5. 사진 ═══ -->
+  <div class="card" data-section="section-5">
+    <div class="card-title"><span class="num">5</span> 작업 사진</div>
+    <div class="card-body">
+      <div class="photo-area" onclick="document.getElementById('photoInput').click()">
+        클릭하여 사진 선택 (여러 장 가능)
+        <input type="file" id="photoInput" multiple accept="image/*" onchange="handlePhotos(this)">
+      </div>
+      <div class="photo-preview" id="photoPreview"></div>
+      <div id="photoStageSummary" class="photo-stage-summary" style="display:none;"></div>
+      <div class="hint" style="margin-top:8px;">사진을 올린 뒤 각 사진의 <b>단계</b>를 선택하세요. 블로그 본문에서 해당 단계 위치에 자동 배치됩니다.<br>설명은 선택사항 — 넣으면 더 정확한 위치에 배치됩니다.</div>
+    </div>
+  </div>
+
+  <!-- ═══ 버튼 ═══ -->
+  <div class="card">
+    <div class="card-body">
+      <div class="btn-group">
+        <button class="btn btn-primary" onclick="saveSsot()">SSOT 저장</button>
+        <button class="btn btn-secondary" onclick="clearForm()">초기화</button>
+      </div>
+      <div class="save-result" id="saveResult"></div>
+    </div>
+  </div>
+
+</div><!-- .container -->
+
+<aside class="guide-sidebar" id="guideSidebar">
+  <div class="guide-sidebar-inner">
+    <div class="guide-sidebar-title" id="guideSidebarTitle">작업 기록 가이드</div>
+    <div class="guide-progress" id="guideProgress">□□□□□ 0/5</div>
+
+    <div class="guide-section active" data-guide="section-1">
+      <div class="guide-section-title">1. 차량 정보</div>
+      <ul class="guide-section-body">
+        <li>브랜드/모델은 정확하게 (예: "그랜저 TG" O, "그랜저" △)</li>
+        <li>연식, 주행거리, 특이사항 기록하면 글 신뢰도 UP</li>
+      </ul>
+    </div>
+    <div class="guide-section" data-guide="section-2">
+      <div class="guide-section-title">2. 작업 정보</div>
+      <ul class="guide-section-body">
+        <li>고객이 말한 증상 그대로 적기 (예: "브레이크가 물렁해요")</li>
+        <li>작업 중 발견한 예상 못한 문제</li>
+        <li>특이한 차량 상태 (녹, 이전 작업 흔적 등)</li>
+        <li>해결 과정에서의 판단 근거</li>
+      </ul>
+    </div>
+    <div class="guide-section" data-guide="section-3">
+      <div class="guide-section-title">3. 작업 메모</div>
+      <ul class="guide-section-body">
+        <li>왜 이 부품/방식을 선택했는지 이유</li>
+        <li>다른 샵이라면 어떻게 했을지 (차별점)</li>
+        <li>고객이 한 말 (한마디라도 OK)</li>
+        <li>작업 중 까다로웠던 포인트</li>
+      </ul>
+    </div>
+    <div class="guide-section" data-guide="section-4">
+      <div class="guide-section-title">4. 추가 정보</div>
+      <ul class="guide-section-body">
+        <li>순정 대비 체감 차이 (수치면 더 좋음)</li>
+        <li>무료로 해준 서비스 (시운전, 점검 등)</li>
+        <li>고객이 어디서 왔는지 (지역 → SEO 효과)</li>
+        <li>소개/동호회 경로 (스토리 앵글 활성화)</li>
+      </ul>
+    </div>
+    <div class="guide-section" data-guide="section-5">
+      <div class="guide-section-title">5. 사진</div>
+      <ul class="guide-section-body">
+        <li>단계별 사진이 3장 이상이면 글 구성이 풍부해짐</li>
+        <li>작업 전/후 비교 사진이 가장 효과적</li>
+        <li>부품 디테일 컷도 전문성 어필에 좋음</li>
+      </ul>
+    </div>
+  </div>
+</aside>
+
+</div><!-- .page-wrap -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── State ──
+let parts = [];
+let photos = [];
+
+// ── Guide sidebar: Accordion + Progress ──
+var guideSections = document.querySelectorAll('.guide-section');
+
+function initGuideObserver() {
+  var cards = document.querySelectorAll('.card[data-section]');
+
+  var observer = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (entry.isIntersecting) {
+        var sec = entry.target.dataset.section;
+        guideSections.forEach(function(s) {
+          s.classList.toggle('active', s.dataset.guide === sec);
+        });
+      }
+    });
+  }, { threshold: 0.3 });
+
+  cards.forEach(function(c) { observer.observe(c); });
+
+  // Click section title to scroll to corresponding card
+  guideSections.forEach(function(s) {
+    s.querySelector('.guide-section-title').onclick = function() {
+      var target = document.querySelector('.card[data-section="' + s.dataset.guide + '"]');
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+  });
+}
+
+function updateGuideProgress() {
+  var sec4Fields = ['referral','region','specBefore','specAfter','improvement','extra'];
+  var sec4HasValue = sec4Fields.some(function(id) {
+    var el = document.getElementById(id);
+    return el && el.value.trim();
+  });
+  // Also check chip selections and custom input for section 4
+  if (!sec4HasValue) {
+    sec4HasValue = document.querySelectorAll('#freeServiceChips .chip.active').length > 0
+      || (document.getElementById('freeServiceCustom') && document.getElementById('freeServiceCustom').value.trim());
+  }
+
+  var checks = [
+    document.getElementById('brand').value.trim() || document.getElementById('model').value.trim(),
+    document.getElementById('workType').value.trim(),
+    document.getElementById('memo').value.trim(),
+    sec4HasValue,
+    photos.length > 0
+  ];
+  var done = checks.filter(Boolean).length;
+  var bar = '';
+  for (var i = 0; i < 5; i++) bar += i < done ? '\u25A0' : '\u25A1';
+
+  document.getElementById('guideProgress').textContent = bar + ' ' + done + '/5';
+
+  // Update done class on each section
+  guideSections.forEach(function(s, idx) {
+    s.classList.toggle('done', !!checks[idx]);
+  });
+
+  // Mobile collapsed: show progress in title
+  var titleEl = document.getElementById('guideSidebarTitle');
+  if (titleEl) titleEl.setAttribute('data-progress', bar + ' ' + done + '/5');
+}
+
+function initGuideProgressListeners() {
+  var inputIds = ['brand','model','workType','memo','referral','region',
+    'specBefore','specAfter','improvement','extra','freeServiceCustom'];
+  inputIds.forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.addEventListener('input', updateGuideProgress);
+  });
+  // Chip toggles are handled by patching toggleChip below
+  updateGuideProgress();
+}
+
+function initMobileGuide() {
+  var sidebar = document.getElementById('guideSidebar');
+  var title = sidebar.querySelector('.guide-sidebar-title');
+  function check() {
+    if (window.innerWidth <= 960) {
+      sidebar.classList.add('collapsed');
+      title.onclick = function() { sidebar.classList.toggle('collapsed'); };
+    } else {
+      sidebar.classList.remove('collapsed');
+      title.onclick = null;
+    }
+  }
+  check();
+  window.addEventListener('resize', check);
+}
+
+initGuideObserver();
+initMobileGuide();
+initGuideProgressListeners();
+
+// ── Chip toggle ──
+function toggleChip(el) {
+  el.classList.toggle('active');
+  updateGuideProgress();
+}
+
+function getSelectedChips(groupId) {
+  const chips = document.querySelectorAll('#' + groupId + ' .chip.active');
+  return Array.from(chips).map(c => c.textContent.trim());
+}
+
+// ── Parts ──
+function addPart() {
+  const input = document.getElementById('partInput');
+  const val = input.value.trim();
+  if (!val) return;
+  if (!parts.includes(val)) parts.push(val);
+  input.value = '';
+  renderParts();
+}
+
+function removePart(idx) {
+  parts.splice(idx, 1);
+  renderParts();
+}
+
+function renderParts() {
+  const el = document.getElementById('partsList');
+  el.innerHTML = parts.map((p, i) =>
+    '<span class="part-tag">' + esc(p) + ' <span class="remove" onclick="removePart(' + i + ')">&times;</span></span>'
+  ).join('');
+}
+
+// ── Photos ──
+const PHOTO_STAGES = [
+  { value: '',           label: '단계 선택' },
+  { value: 'arrival',    label: '입고/초기 상태' },
+  { value: 'before',     label: '작업 전 (순정/분해)' },
+  { value: 'during',     label: '작업 중 (장착/조립)' },
+  { value: 'after',      label: '작업 후 (완성)' },
+  { value: 'test',       label: '시운전/검증' },
+  { value: 'detail',     label: '디테일 컷' },
+  { value: 'top',        label: '기타 — 글 상단 배치' },
+  { value: 'bottom',     label: '기타 — 배너 위 배치' },
+];
+
+const STAGE_TO_CONTEXT = {
+  arrival:  '차량 입고 초기 상태',
+  before:   '작업 전 순정 부품/분해 모습',
+  during:   '작업 중 장착 과정',
+  after:    '작업 완료 후 완성 모습',
+  test:     '시운전 및 검증',
+  detail:   '부품/마감 디테일 컷',
+  top:      '글 도입부 상단에 배치할 참고 사진',
+  bottom:   '마무리 직전 배너 위에 배치할 참고 사진',
+};
+
+function autoAssignStages(list) {
+  const n = list.length;
+  if (n === 0) return;
+  // Distribute: arrival → before → during(bulk) → after
+  const plan = [];
+  if (n <= 2) {
+    // 1~2장: 전부 작업중
+    list.forEach(() => plan.push('during'));
+  } else if (n <= 4) {
+    // 3~4장: 작업전 / 작업중... / 작업후
+    plan.push('before');
+    for (let i = 1; i < n - 1; i++) plan.push('during');
+    plan.push('after');
+  } else {
+    // 5장+: 입고 / 작업전 / 작업중... / 작업후 / 작업후
+    plan.push('arrival');
+    plan.push('before');
+    for (let i = 2; i < n - 2; i++) plan.push('during');
+    plan.push('after');
+    plan.push('after');
+  }
+  list.forEach((p, i) => {
+    if (!p.stage) p.stage = plan[i] || 'during';
+  });
+}
+
+function handlePhotos(input) {
+  const files = Array.from(input.files);
+  const newPhotos = [];
+  files.forEach(f => {
+    if (!photos.find(p => p.name === f.name)) {
+      const item = { name: f.name, file: f, stage: '', resizedBlob: null };
+      photos.push(item);
+      newPhotos.push(item);
+    }
+  });
+  // Auto-assign stages to newly added photos
+  autoAssignStages(newPhotos);
+  photos.forEach((p) => {
+    if (!p.resizedBlob) {
+      resizeImage(p.file).then(blob => { p.resizedBlob = blob; });
+    }
+  });
+  renderPhotos();
+  updateGuideProgress();
+}
+
+function removePhoto(idx) {
+  photos.splice(idx, 1);
+  renderPhotos();
+  updateGuideProgress();
+}
+
+function renderPhotos() {
+  const el = document.getElementById('photoPreview');
+  el.innerHTML = '';
+  photos.forEach((p, i) => {
+    const div = document.createElement('div');
+    div.className = 'photo-item';
+
+    const img = document.createElement('img');
+    img.src = URL.createObjectURL(p.file);
+    const btn = document.createElement('button');
+    btn.className = 'photo-remove';
+    btn.textContent = '\u00d7';
+    btn.onclick = () => removePhoto(i);
+    div.appendChild(img);
+    div.appendChild(btn);
+
+    // Stage dropdown
+    const sel = document.createElement('select');
+    sel.className = 'photo-stage';
+    PHOTO_STAGES.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.value; opt.textContent = s.label;
+      if (s.value === p.stage) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    sel.onchange = (e) => { photos[i].stage = e.target.value; updateStageSummary(); };
+    div.appendChild(sel);
+
+    el.appendChild(div);
+  });
+  updateStageSummary();
+}
+
+function updateStageSummary() {
+  const sumEl = document.getElementById('photoStageSummary');
+  if (photos.length === 0) { sumEl.style.display = 'none'; return; }
+
+  const grouped = {};
+  photos.forEach((p, i) => {
+    const key = p.stage || '_none';
+    if (!grouped[key]) grouped[key] = [];
+    grouped[key].push(i + 1);
+  });
+
+  const lines = [];
+  const stageOrder = ['top','arrival','before','during','after','test','detail','bottom'];
+  stageOrder.forEach(key => {
+    if (grouped[key]) {
+      const label = PHOTO_STAGES.find(s => s.value === key)?.label || key;
+      lines.push('<strong>' + esc(label) + '</strong>: 사진 ' + grouped[key].join(', '));
+    }
+  });
+  if (grouped._none) {
+    lines.push('<span style="color:#e00;">미지정: 사진 ' + grouped._none.join(', ') + ' (단계를 선택해주세요)</span>');
+  }
+
+  sumEl.innerHTML = '블로그 배치 순서:<br>' + lines.join('<br>');
+  sumEl.style.display = 'block';
+}
+
+// ── Client-side image resize ──
+function resizeImage(file) {
+  return new Promise(resolve => {
+    if (file.size < 500 * 1024) { resolve(null); return; }
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 1600;
+      let w = img.width, h = img.height;
+      if (w <= MAX && h <= MAX) { resolve(null); return; }
+      if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+      else { w = Math.round(w * MAX / h); h = MAX; }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      canvas.toBlob(blob => resolve(blob), 'image/jpeg', 0.85);
+    };
+    img.onerror = () => resolve(null);
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+// ── Build SSOT JSON from form ──
+function buildSsotJson() {
+  const brand = document.getElementById('brand').value.trim();
+  const model = document.getElementById('model').value.trim();
+  const workType = document.getElementById('workType').value.trim();
+
+  if (!brand || !model || !workType) {
+    showToast('브랜드, 모델, 작업 유형은 필수입니다!');
+    return null;
+  }
+  if (parts.length === 0) {
+    showToast('부품을 1개 이상 추가해주세요!');
+    return null;
+  }
+
+  const memo = document.getElementById('memo').value.trim();
+  const kpText = document.getElementById('keyPoints').value.trim();
+  const keyPoints = kpText ? kpText.split('\n').map(l => l.trim()).filter(Boolean) : [];
+
+  const ts = new Date().toISOString();
+  const hash = Date.now().toString(16).slice(-12).padStart(12, '0');
+  const id = 'manual_' + hash + '_post_01';
+
+  const ssot = {
+    postId: id,
+    source: 'manual_input',
+    createdAt: ts,
+
+    vehicle: {
+      brand: brand,
+      model: model,
+      note: document.getElementById('vehicleNote').value.trim() || ''
+    },
+
+    work: {
+      type: workType,
+      parts: [...parts],
+      solution: document.getElementById('solution').value.trim() || '',
+      duration: document.getElementById('duration').value.trim() || ''
+    },
+
+    keyPoints: keyPoints,
+    difficulty: document.getElementById('difficulty').value || '중',
+    originalText: memo,
+
+    images: {
+      count: photos.length,
+      files: photos.map((p, i) => `img_${String(i + 1).padStart(3, '0')}.jpg`),
+      positions: photos.map((p, i) => ({
+        order: i + 1,
+        stage: p.stage || null,
+        prevText: STAGE_TO_CONTEXT[p.stage] || null,
+      })),
+    },
+
+    platforms: {
+      naverBlog: null,
+      instagram: null,
+      daangn: null
+    }
+  };
+
+  // Symptom chips + custom → consumer.directDemand.symptom
+  const selectedSymptoms = getSelectedChips('symptomChips');
+  const customSymptom = document.getElementById('symptomCustom').value.trim();
+  if (customSymptom) selectedSymptoms.push(customSymptom);
+  if (selectedSymptoms.length) {
+    ssot.consumer = ssot.consumer || {};
+    ssot.consumer.directDemand = ssot.consumer.directDemand || {};
+    ssot.consumer.directDemand.symptom = selectedSymptoms;
+  }
+  // Backward compat: challenge from symptom custom text
+  ssot.work.challenge = customSymptom || selectedSymptoms.join(', ');
+
+  // Urgency
+  const urgency = document.getElementById('urgency').value;
+  if (urgency) {
+    ssot.consumer = ssot.consumer || {};
+    ssot.consumer.urgency = urgency;
+  }
+
+  // Optional fields → salesContext
+  const referral = document.getElementById('referral').value.trim();
+  const region = document.getElementById('region').value.trim();
+  const specBefore = document.getElementById('specBefore').value.trim();
+  const specAfter = document.getElementById('specAfter').value.trim();
+  const improvement = document.getElementById('improvement').value.trim();
+  const extra = document.getElementById('extra').value.trim();
+  const freeServices = getSelectedChips('freeServiceChips');
+  const customService = document.getElementById('freeServiceCustom').value.trim();
+  if (customService) {
+    customService.split(',').map(s => s.trim()).filter(Boolean).forEach(s => freeServices.push(s));
+  }
+
+  if (referral || region || specBefore || specAfter || improvement || extra || freeServices.length) {
+    ssot.salesContext = {};
+    if (referral) ssot.salesContext.referral = { hasReferral: true, source: referral };
+    if (region) ssot.salesContext.customerRegion = region;
+    if (specBefore || specAfter || improvement) {
+      ssot.salesContext.specComparison = { before: specBefore, after: specAfter, improvement: improvement };
+    }
+    if (freeServices.length) ssot.salesContext.freeServices = freeServices;
+    if (extra) ssot.salesContext.extra = extra;
+  }
+
+  return ssot;
+}
+
+// ── Save SSOT ──
+async function saveSsot() {
+  const ssot = buildSsotJson();
+  if (!ssot) return;
+
+  // Server mode: POST to API
+  if (window.__SERVER_MODE__) {
+    showToast('저장 중...');
+    try {
+      let res;
+      if (photos.length > 0) {
+        // FormData upload with images
+        const fd = new FormData();
+        fd.append('ssot', JSON.stringify(ssot));
+        photos.forEach((p, i) => {
+          const fname = `img_${String(i + 1).padStart(3, '0')}.jpg`;
+          fd.append('images', p.resizedBlob || p.file, fname);
+        });
+        res = await fetch('/api/save-ssot-with-images', { method: 'POST', body: fd });
+      } else {
+        // No images — simple JSON
+        res = await fetch('/api/save-ssot', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(ssot),
+        });
+      }
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'SSOT 저장 실패');
+
+      showToast('SSOT 저장 완료!');
+      const resultDiv = document.getElementById('saveResult');
+      resultDiv.style.display = 'block';
+      resultDiv.innerHTML = '<strong>저장 완료!</strong> postId: <code>' + esc(ssot.postId) + '</code>'
+        + (data.imageCount ? ' (' + data.imageCount + '장 업로드)' : '')
+        + ' &nbsp;|&nbsp; <a href="/dashboard">대시보드에서 확인</a>';
+    } catch (e) {
+      showToast('오류: ' + e.message);
+    }
+    return;
+  }
+
+  // File mode: download JSON
+  const filename = ssot.postId + '.json';
+  const blob = new Blob([JSON.stringify(ssot, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast(filename + ' 다운로드됨! → data/ssot-posts/ 에 넣으세요');
+  if (photos.length > 0) {
+    setTimeout(() => showToast('사진 파일은 output/images/' + ssot.postId + '/ 폴더에 직접 넣어주세요'), 2500);
+  }
+}
+
+// ── Clear ──
+function clearForm() {
+  ['brand','model','vehicleNote','workType','symptomCustom','solution','duration','memo','keyPoints','referral','region','specBefore','specAfter','improvement','freeServiceCustom','extra'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('difficulty').value = '';
+  document.getElementById('urgency').value = '';
+  parts = []; renderParts();
+  photos = []; document.getElementById('photoPreview').innerHTML = '';
+  document.getElementById('photoInput').value = '';
+  document.getElementById('saveResult').style.display = 'none';
+  // Clear chip selections
+  document.querySelectorAll('.chip.active').forEach(c => c.classList.remove('active'));
+  updateGuideProgress();
+}
+
+// ── Util ──
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s || '';
+  return d.innerHTML;
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// ── Server mode: adjust dashboard/guide links ──
+if (window.__SERVER_MODE__) {
+  const link = document.getElementById('dashboardLink');
+  if (link) link.href = '/dashboard';
+  const guideLink = document.getElementById('guideLink');
+  if (guideLink) guideLink.href = '/work-guide';
+}
+
+// ── SSOT Suggestions (서버 모드) ──
+var _suggestions = null;
+
+function loadSuggestions() {
+  if (!window.__SERVER_MODE__) return;
+  fetch('/api/ssot-suggestions').then(function(r) { return r.json(); }).then(function(d) {
+    _suggestions = d;
+    fillDatalist('brandList', d.brands);
+    fillDatalist('workList', d.workTypes);
+    fillDatalist('partList', d.allParts);
+  }).catch(function() { /* offline — 빈 datalist 유지 */ });
+}
+
+function fillDatalist(id, items) {
+  var dl = document.getElementById(id);
+  if (!dl || !items) return;
+  dl.innerHTML = items.map(function(it) {
+    return '<option value="' + esc(it.name) + '">' + esc(it.name) + ' (' + it.count + '건)</option>';
+  }).join('');
+}
+
+function onBrandChange() {
+  if (!_suggestions) return;
+  var brand = document.getElementById('brand').value.trim();
+  var models = _suggestions.modelsByBrand[brand];
+  var dl = document.getElementById('modelList');
+  if (!dl) return;
+  if (models) {
+    dl.innerHTML = models.map(function(m) {
+      return '<option value="' + esc(m.name) + '">' + esc(m.name) + ' (' + m.count + '건)</option>';
+    }).join('');
+  } else {
+    dl.innerHTML = '';
+  }
+}
+
+function onWorkTypeChange() {
+  // Smart duration defaults
+  var wt = document.getElementById('workType').value.trim();
+  var durEl = document.getElementById('duration');
+  if (wt && !durEl.value.trim()) {
+    var wtLow = wt.toLowerCase();
+    if (/패드\s*교체|연마/.test(wtLow)) durEl.value = '당일 완료';
+    else if (/풀셋|풀세팅/.test(wtLow)) durEl.value = '3~4시간';
+    else if (/이식|커스텀/.test(wtLow)) durEl.value = '반나절';
+  }
+
+  if (!_suggestions) return;
+  var wp = _suggestions.partsByWork[wt];
+  var container = document.getElementById('suggestedParts');
+  var btns = document.getElementById('suggestedPartsButtons');
+  if (!container || !btns) return;
+  if (wp && wp.length > 0) {
+    container.style.display = '';
+    btns.innerHTML = wp.map(function(p) {
+      return '<button type="button" onclick="addSuggestedPart(this)" '
+        + 'style="padding:3px 10px;border:1px solid #03c75a;background:#e6f9ed;color:#03c75a;border-radius:14px;font-size:12px;cursor:pointer;"'
+        + ' data-part="' + esc(p.name) + '">' + esc(p.name) + '</button>';
+    }).join('');
+    // partList도 해당 작업유형 부품으로 업데이트
+    fillDatalist('partList', wp);
+  } else {
+    container.style.display = 'none';
+    // 전체 부품 목록으로 복원
+    fillDatalist('partList', _suggestions.allParts);
+  }
+}
+
+function addSuggestedPart(btn) {
+  var name = btn.getAttribute('data-part');
+  if (!name || parts.includes(name)) return;
+  parts.push(name);
+  renderParts();
+  btn.style.opacity = '0.4';
+  btn.style.pointerEvents = 'none';
+}
+
+loadSuggestions();
+</script>
+</body>
+</html>

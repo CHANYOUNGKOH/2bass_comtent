@@ -54,11 +54,13 @@ const IMAGES_DIR = path.join(ROOT, 'output/images');
 const MANIFEST_FILE = path.join(IMAGES_DIR, 'manifest.json');
 const STATUS_FILE = path.join(ROOT, 'data/publish/naver-v2-status.json');
 const FORM_PATHS = [
+  path.join(ROOT, 'docs/new-post-form.html'),
   path.join(ROOT, 'publish-package/html/new-post-form.html'),
   path.join(ROOT, 'publish-ready/html/new-post-form.html'),
   path.join(ROOT, 'data/publish/naver-v2-html/new-post-form.html'),
 ];
 const GUIDE_PATHS = [
+  path.join(ROOT, 'docs/work-guide.html'),
   path.join(ROOT, 'publish-package/html/work-guide.html'),
   path.join(ROOT, 'publish-ready/html/work-guide.html'),
   path.join(ROOT, 'data/publish/naver-v2-html/work-guide.html'),
