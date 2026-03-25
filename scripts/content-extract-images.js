@@ -267,6 +267,15 @@ async function syncManifestToSsot() {
     updated++;
   }
   console.log(`\nSSOT 이미지 동기화: ${updated}건 업데이트`);
+
+  // HTML 재생성 (이미지 경로 반영)
+  if (updated > 0) {
+    console.log('\nHTML 재생성 중...');
+    const { execSync } = require('child_process');
+    try {
+      execSync('node scripts/naver-blog-publish-html.js', { cwd: ROOT, stdio: 'inherit' });
+    } catch (_) { console.error('HTML 재생성 실패 — 수동 실행: node scripts/naver-blog-publish-html.js'); }
+  }
 }
 
 // --sync 단독 실행 모드
