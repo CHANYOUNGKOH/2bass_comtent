@@ -2637,5 +2637,9 @@ function main() {
 export { buildIndexHtml, buildPostHtml, scanPosts, absImgDir, ROOT, V2_DIR, HTML_DIR, SSOT_DIR };
 
 // ── 직접 실행 시에만 main() 호출 ──
-const isMain = process.argv[1] && path.resolve(process.argv[1]) === path.resolve(__filename);
-if (isMain) { main(); }
+// Windows 한글 경로에서 fork() 시 유니코드 정규화(NFC/NFD) 차이로
+// path.resolve() 비교가 실패할 수 있으므로 basename + lowercase로 비교
+const _argv1 = process.argv[1] || '';
+const _isMain = _argv1 &&
+  path.basename(_argv1).toLowerCase() === path.basename(__filename).toLowerCase();
+if (_isMain) { main(); }
