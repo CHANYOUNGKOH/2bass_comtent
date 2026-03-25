@@ -1951,8 +1951,8 @@ function render() {
       imgCellClick = ' data-id="' + r.id + '" data-platform="img" onclick="onExtractImages(&quot;' + r.id + '&quot;, true)"';
     } else if (r.imgExtracted > 0) {
       imgCellContent = '📷' + r.imgExtracted;
-      imgCellClass = ' style="text-align:center; color:#03c75a; font-size:12px; font-weight:600;"';
-      imgCellClick = '';
+      imgCellClass = ' style="text-align:center; color:#03c75a; font-size:12px; font-weight:600; cursor:pointer;" title="클릭하여 재추출"';
+      imgCellClick = ' data-id="' + r.id + '" data-platform="img" onclick="onExtractImages(&quot;' + r.id + '&quot;, true)"';
     } else {
       imgCellContent = r.img > 0 ? '⬚(' + r.img + ')' : '⬚';
       imgCellClass = ' class="status-cell st-none" style="cursor:pointer;"';
