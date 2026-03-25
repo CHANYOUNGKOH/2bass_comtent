@@ -722,16 +722,17 @@ async function handler(req, res) {
       function runScriptSSE(scriptPath, args) {
         return new Promise((resolve, reject) => {
           const proc = fork(scriptPath, args, { cwd: ROOT, silent: true });
+          let lastStderr = '';
           proc.stdout.on('data', d => {
             const msg = d.toString().trim();
             if (msg) send('progress', { message: msg });
           });
           proc.stderr.on('data', d => {
             const msg = d.toString().trim();
-            if (msg) send('log', { message: msg });
+            if (msg) { lastStderr = msg; send('log', { message: msg }); }
           });
           proc.on('close', code => {
-            if (code !== 0) reject(new Error(`exit ${code}`));
+            if (code !== 0) reject(new Error(`exit ${code}: ${lastStderr}`));
             else resolve();
           });
           proc.on('error', reject);
@@ -777,13 +778,20 @@ async function handler(req, res) {
 
       // HTML 재생성
       send('progress', { message: 'HTML 생성 중...' });
-      await runScriptSSE(path.join(ROOT, 'scripts/naver-blog-publish-html.js'), [postId]);
+      let htmlWarning = null;
+      try {
+        await runScriptSSE(path.join(ROOT, 'scripts/naver-blog-publish-html.js'), [postId]);
+      } catch (htmlErr) {
+        console.error(`[generate] HTML 생성 실패 (콘텐츠는 성공):`, htmlErr.message);
+        htmlWarning = `HTML 생성 실패: ${htmlErr.message}`;
+        send('warning', { message: htmlWarning });
+      }
 
       const generated = [];
       if (target === 'b1' || (!target && needB1)) generated.push('b1');
       if (target === 'b2' || (!target && needB2)) generated.push('b2');
-      console.log(`[generate] ${postId} / ${platform}${target ? '/' + target : ''} 완료 (generated: ${generated.join(',')})`);
-      send('done', { ok: true, postId, target, generated });
+      console.log(`[generate] ${postId} / ${platform}${target ? '/' + target : ''} 완료 (generated: ${generated.join(',')})${htmlWarning ? ' ⚠ HTML실패' : ''}`);
+      send('done', { ok: true, postId, target, generated, ...(htmlWarning && { warning: htmlWarning }) });
       res.end();
     } catch (e) {
       console.error(`[generate] 실패:`, e.message);

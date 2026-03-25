@@ -2560,57 +2560,72 @@ function scanPosts() {
 // ── Main ──
 
 function main() {
-  ensureDir(HTML_DIR);
+  try {
+    ensureDir(HTML_DIR);
 
-  const targetPostId = process.argv[2] || null;
+    const targetPostId = process.argv[2] || null;
+    console.log(`[html] 시작: target=${targetPostId || '전체'}, V2_DIR=${V2_DIR}`);
 
-  const { posts, blog2Map } = scanPosts();
-  const allPostIds = posts.map(p => p.postId);
+    const { posts, blog2Map } = scanPosts();
+    console.log(`[html] 스캔: ${posts.length}개 포스트, blog2: ${Object.keys(blog2Map).length}개`);
 
-  // Load/init status
-  const status = loadStatus();
-  let generated = 0;
+    const allPostIds = posts.map(p => p.postId);
 
-  posts.forEach((post, i) => {
-    if (targetPostId && post.postId !== targetPostId) return;
+    // Load/init status
+    const status = loadStatus();
+    let generated = 0;
 
-    const blog2Post = blog2Map[post.postId] || null;
-    const htmlPath = path.join(HTML_DIR, `${post.postId}.html`);
-    const html = buildPostHtml(post, allPostIds, i, blog2Post);
-    fs.writeFileSync(htmlPath, html, 'utf8');
-    generated++;
+    posts.forEach((post, i) => {
+      if (targetPostId && post.postId !== targetPostId) return;
 
-    // Init status entry if not exists
-    if (!status.posts[post.postId]) {
-      status.posts[post.postId] = {
-        status: 'generated',
-        publishedAt: null,
-        naverUrl: null,
-        notes: ''
-      };
+      const blog2Post = blog2Map[post.postId] || null;
+      const htmlPath = path.join(HTML_DIR, `${post.postId}.html`);
+      const html = buildPostHtml(post, allPostIds, i, blog2Post);
+      fs.writeFileSync(htmlPath, html, 'utf8');
+      generated++;
+
+      // Init status entry if not exists
+      if (!status.posts[post.postId]) {
+        status.posts[post.postId] = {
+          status: 'generated',
+          publishedAt: null,
+          naverUrl: null,
+          notes: ''
+        };
+      }
+    });
+
+    if (targetPostId && generated === 0) {
+      console.error(`[html] ⚠ target=${targetPostId} 매칭 실패 — V2_DIR 파일 확인 필요`);
+      const files = fs.readdirSync(V2_DIR).filter(f => f.endsWith('.json'));
+      console.error(`[html] V2_DIR 파일(${files.length}개): ${files.slice(0, 5).join(', ')}${files.length > 5 ? '...' : ''}`);
     }
-  });
 
-  // Build dashboard HTML (data loaded via API at runtime)
-  console.log('대시보드 HTML 생성 중...');
-  const indexHtml = buildIndexHtml();
-  fs.writeFileSync(path.join(HTML_DIR, '_index.html'), indexHtml, 'utf8');
-  console.log(`📊 대시보드 HTML 생성 완료 (데이터는 서버 API에서 로드)`);
+    // Build dashboard HTML (data loaded via API at runtime)
+    console.log('대시보드 HTML 생성 중...');
+    const indexHtml = buildIndexHtml();
+    fs.writeFileSync(path.join(HTML_DIR, '_index.html'), indexHtml, 'utf8');
+    console.log(`📊 대시보드 HTML 생성 완료 (데이터는 서버 API에서 로드)`);
 
-  // Update stats (2블로그)
-  const allStatuses = Object.values(status.posts);
-  status.stats = {
-    total: posts.length,
-    generated: allStatuses.length,
-    blog1Published: allStatuses.filter(s => s.blog1?.status === 'published').length,
-    blog2Published: allStatuses.filter(s => s.blog2?.status === 'published').length,
-    skipped: allStatuses.filter(s => s.blog1?.status === 'skipped').length,
-  };
-  saveStatus(status);
+    // Update stats (2블로그)
+    const allStatuses = Object.values(status.posts);
+    status.stats = {
+      total: posts.length,
+      generated: allStatuses.length,
+      blog1Published: allStatuses.filter(s => s.blog1?.status === 'published').length,
+      blog2Published: allStatuses.filter(s => s.blog2?.status === 'published').length,
+      skipped: allStatuses.filter(s => s.blog1?.status === 'skipped').length,
+    };
+    saveStatus(status);
 
-  console.log(`✅ HTML 생성 완료: ${generated}개`);
-  console.log(`📋 대시보드: ${path.join(HTML_DIR, '_index.html')}`);
-  console.log(`📊 상태: 생성 ${status.stats.generated} / 1번발행 ${status.stats.blog1Published} / 2번발행 ${status.stats.blog2Published} / 건너뛰기 ${status.stats.skipped}`);
+    console.log(`[html] 완료: ${generated}개 생성`);
+    console.log(`📋 대시보드: ${path.join(HTML_DIR, '_index.html')}`);
+    console.log(`📊 상태: 생성 ${status.stats.generated} / 1번발행 ${status.stats.blog1Published} / 2번발행 ${status.stats.blog2Published} / 건너뛰기 ${status.stats.skipped}`);
+  } catch (e) {
+    console.error(`[html] 치명적 오류: ${e.message}`);
+    console.error(e.stack);
+    process.exit(1);
+  }
 }
 
 // ── Exports (빌드 스크립트에서 import) ──
