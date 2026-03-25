@@ -1730,7 +1730,7 @@ function onStatusClick(postId, platform) {
     });
   } else {
     if (batchRunning) { window.open(postId + '.html', '_blank'); return; }
-    window.location.href = postId + '.html';
+    window.open(postId + '.html', '_blank');
   }
 }
 
@@ -1837,8 +1837,7 @@ function onNaverView(postId) {
   var eB1 = getEffective(row, 'b1');
   var eB2 = getEffective(row, 'b2');
   if (eB1 !== 'none' || eB2 !== 'none') {
-    if (batchRunning) { window.open(postId + '.html', '_blank'); return; }
-    window.location.href = postId + '.html';
+    window.open(postId + '.html', '_blank');
   }
 }
 
@@ -1850,8 +1849,7 @@ function onNaverClick(postId) {
 
   // 이미 완료 → HTML 뷰
   if (eB1 === 'published' || eB2 === 'published' || (eB1 === 'generated' && eB2 === 'generated')) {
-    if (batchRunning) { window.open(postId + '.html', '_blank'); return; }
-    window.location.href = postId + '.html';
+    window.open(postId + '.html', '_blank');
     return;
   }
 
