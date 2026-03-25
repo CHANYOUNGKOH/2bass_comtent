@@ -429,7 +429,7 @@ async function handler(req, res) {
       const Anthropic = (await import('@anthropic-ai/sdk')).default;
       const client = new Anthropic();
       const r = await client.messages.create({
-        model: 'claude-sonnet-4-6-20250514',
+        model: 'claude-sonnet-4-6-latest',
         max_tokens: 10,
         messages: [{ role: 'user', content: 'say ok' }],
       });

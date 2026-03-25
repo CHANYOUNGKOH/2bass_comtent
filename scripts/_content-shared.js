@@ -249,9 +249,9 @@ export function hashCode(str) {
 
 // 모델 별칭 → Anthropic API 모델 ID 매핑
 const MODEL_MAP = {
-  'sonnet':  'claude-sonnet-4-6-20250514',
-  'haiku':   'claude-haiku-4-5-20251001',
-  'opus':    'claude-opus-4-6-20250514',
+  'sonnet':  'claude-sonnet-4-6-latest',
+  'haiku':   'claude-haiku-4-5-latest',
+  'opus':    'claude-opus-4-6-latest',
 };
 
 function resolveModelId(alias) {
