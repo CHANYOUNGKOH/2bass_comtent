@@ -2599,6 +2599,11 @@ function main() {
       console.error(`[html] ⚠ target=${targetPostId} 매칭 실패 — V2_DIR 파일 확인 필요`);
       const files = fs.readdirSync(V2_DIR).filter(f => f.endsWith('.json'));
       console.error(`[html] V2_DIR 파일(${files.length}개): ${files.slice(0, 5).join(', ')}${files.length > 5 ? '...' : ''}`);
+      // 스캔된 postId들과 target 비교
+      const scannedIds = posts.map(p => p.postId);
+      console.error(`[html] 스캔된 postId(${scannedIds.length}개): ${scannedIds.slice(0, 5).join(', ')}${scannedIds.length > 5 ? '...' : ''}`);
+      console.error(`[html] target "${targetPostId}" 포함 여부: ${scannedIds.includes(targetPostId)}`);
+      process.exit(1);
     }
 
     // Build dashboard HTML (data loaded via API at runtime)

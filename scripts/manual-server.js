@@ -725,11 +725,18 @@ async function handler(req, res) {
           let lastStderr = '';
           proc.stdout.on('data', d => {
             const msg = d.toString().trim();
-            if (msg) send('progress', { message: msg });
+            if (msg) {
+              console.log(`  ┃ ${msg}`);
+              send('progress', { message: msg });
+            }
           });
           proc.stderr.on('data', d => {
             const msg = d.toString().trim();
-            if (msg) { lastStderr = msg; send('log', { message: msg }); }
+            if (msg) {
+              lastStderr = msg;
+              console.error(`  ┃ ${msg}`);
+              send('log', { message: msg });
+            }
           });
           proc.on('close', code => {
             if (code !== 0) reject(new Error(`exit ${code}: ${lastStderr}`));
@@ -785,6 +792,29 @@ async function handler(req, res) {
         console.error(`[generate] HTML 생성 실패 (콘텐츠는 성공):`, htmlErr.message);
         htmlWarning = `HTML 생성 실패: ${htmlErr.message}`;
         send('warning', { message: htmlWarning });
+      }
+
+      // HTML 파일 존재 여부 직접 검증
+      const htmlFile = path.join(HTML_DIR, `${postId}.html`);
+      if (!fs.existsSync(htmlFile)) {
+        console.error(`[generate] ⚠ HTML 파일 미생성: ${htmlFile}`);
+        console.error(`[generate]   blog1 JSON: ${fs.existsSync(path.join(PUBLISH_DIR, `${postId}.json`))}`);
+        console.error(`[generate]   blog2 JSON: ${fs.existsSync(path.join(PUBLISH_DIR, `${postId}_blog2.json`))}`);
+        // fallback: execSync로 직접 재시도
+        try {
+          const { execSync: execSyncLocal } = await import('node:child_process');
+          execSyncLocal(`node scripts/naver-blog-publish-html.js ${postId}`, { cwd: ROOT, stdio: 'pipe', timeout: 30000 });
+          if (fs.existsSync(htmlFile)) {
+            console.log(`[generate] ✅ execSync fallback으로 HTML 생성 성공`);
+            send('progress', { message: 'HTML 생성 완료 (재시도 성공)' });
+          } else {
+            htmlWarning = (htmlWarning || '') + ' / execSync fallback도 실패';
+            console.error(`[generate] execSync fallback도 HTML 미생성`);
+          }
+        } catch (fallbackErr) {
+          console.error(`[generate] execSync fallback 오류:`, fallbackErr.message);
+          htmlWarning = (htmlWarning || '') + ` / fallback: ${fallbackErr.message}`;
+        }
       }
 
       const generated = [];
