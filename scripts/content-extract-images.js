@@ -181,6 +181,35 @@ async function extractSingle(postId) {
   await writeFile(MANIFEST, JSON.stringify(manifest, null, 2));
 
   console.log(`완료: ${stats.images}장 → output/images/${postId}/`);
+
+  // 단건 SSOT 동기화: 추출된 파일 목록을 SSOT에 즉시 반영
+  if (stats.images > 0 && manifest[postId]?.done) {
+    const SSOT_DIR = path.join(ROOT, 'data/ssot-posts');
+    const ssotPath = path.join(SSOT_DIR, postId + '.json');
+    try {
+      const ssotRaw = await readFile(ssotPath, 'utf8');
+      const ssot = JSON.parse(ssotRaw);
+      const files = manifest[postId].images.map(img => img.file);
+      if (!ssot.images) ssot.images = {};
+      ssot.images.dir = path.join('output', 'images', postId);
+      ssot.images.files = files;
+      ssot.images.extracted = files.length;
+      await writeFile(ssotPath, JSON.stringify(ssot, null, 2) + '\n');
+      console.log(`SSOT 동기화 완료: ${postId} (${files.length}장)`);
+    } catch (e) {
+      console.error(`SSOT 동기화 실패: ${e.message}`);
+    }
+
+    // HTML 재생성 (이미지 경로 반영)
+    try {
+      const { execSync } = await import('child_process');
+      console.log('HTML 재생성 중...');
+      execSync('node scripts/naver-blog-publish-html.js', { cwd: ROOT, stdio: 'inherit' });
+    } catch (_) {
+      console.error('HTML 재생성 실패 — 수동 실행: node scripts/naver-blog-publish-html.js');
+    }
+  }
+
   return stats.images;
 }
 
