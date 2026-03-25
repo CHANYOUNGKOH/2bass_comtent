@@ -423,6 +423,23 @@ async function handler(req, res) {
     return;
   }
 
+  // ── GET /api/test-credit — API 크레딧 테스트 ──
+  if (req.method === 'GET' && pathname === '/api/test-credit') {
+    try {
+      const Anthropic = (await import('@anthropic-ai/sdk')).default;
+      const client = new Anthropic();
+      const r = await client.messages.create({
+        model: 'claude-sonnet-4-6-20250514',
+        max_tokens: 10,
+        messages: [{ role: 'user', content: 'say ok' }],
+      });
+      json(res, 200, { ok: true, response: r.content[0]?.text, model: r.model });
+    } catch (e) {
+      json(res, 200, { ok: false, status: e.status, error: e.message });
+    }
+    return;
+  }
+
   // ── GET /api/auth-status — Claude 인증 상태 확인 ──
   if (req.method === 'GET' && pathname === '/api/auth-status') {
     const hasApiKey = !!process.env.ANTHROPIC_API_KEY;
