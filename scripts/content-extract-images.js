@@ -233,8 +233,45 @@ async function main() {
     await writeFile(MANIFEST, JSON.stringify(manifest, null, 2));
   }
 
-  console.log('\n=== 완료 ===');
+  console.log('\n=== 추출 완료 ===');
   console.log(`처리: ${stats.processed}건, 스킵: ${stats.skipped}건, 총 이미지: ${stats.images}장`);
+
+  await syncManifestToSsot();
 }
 
-main().catch(err => { console.error(err); process.exit(1); });
+/**
+ * manifest.json → SSOT images.files/dir/extracted 동기화
+ * 추출 후 자동 실행 + --sync 플래그로 단독 실행 가능
+ */
+async function syncManifestToSsot() {
+  const SSOT_DIR = path.join(ROOT, 'data/ssot-posts');
+  const manifest = await loadJson(MANIFEST, {});
+  const postIds = Object.keys(manifest).filter(k => manifest[k]?.done);
+  if (!postIds.length) { console.log('동기화할 항목 없음'); return; }
+
+  let updated = 0;
+  for (const postId of postIds) {
+    const ssotPath = path.join(SSOT_DIR, postId + '.json');
+    if (!await exists(ssotPath)) continue;
+
+    const ssot = JSON.parse(await readFile(ssotPath, 'utf8'));
+    const entry = manifest[postId];
+    const files = entry.images.map(img => img.file);
+
+    if (!ssot.images) ssot.images = {};
+    ssot.images.dir = path.join('output', 'images', postId);
+    ssot.images.files = files;
+    ssot.images.extracted = files.length;
+
+    await writeFile(ssotPath, JSON.stringify(ssot, null, 2) + '\n');
+    updated++;
+  }
+  console.log(`\nSSOT 이미지 동기화: ${updated}건 업데이트`);
+}
+
+// --sync 단독 실행 모드
+if (process.argv.includes('--sync')) {
+  syncManifestToSsot().catch(err => { console.error(err); process.exit(1); });
+} else {
+  main().catch(err => { console.error(err); process.exit(1); });
+}
