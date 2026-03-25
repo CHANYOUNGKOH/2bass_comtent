@@ -423,20 +423,32 @@ async function handler(req, res) {
     return;
   }
 
-  // ── GET /api/test-credit — API 크레딧 테스트 ──
+  // ── GET /api/test-credit — API 크레딧 테스트 (여러 모델 시도) ──
   if (req.method === 'GET' && pathname === '/api/test-credit') {
-    try {
-      const Anthropic = (await import('@anthropic-ai/sdk')).default;
-      const client = new Anthropic();
-      const r = await client.messages.create({
-        model: 'claude-sonnet-4-6-latest',
-        max_tokens: 10,
-        messages: [{ role: 'user', content: 'say ok' }],
-      });
-      json(res, 200, { ok: true, response: r.content[0]?.text, model: r.model });
-    } catch (e) {
-      json(res, 200, { ok: false, status: e.status, error: e.message });
+    const Anthropic = (await import('@anthropic-ai/sdk')).default;
+    const client = new Anthropic();
+    const candidates = [
+      'claude-sonnet-4-6-latest',
+      'claude-sonnet-4-6',
+      'claude-sonnet-4-5-20250514',
+      'claude-3-7-sonnet-latest',
+      'claude-3-5-sonnet-20241022',
+      'claude-3-5-sonnet-latest',
+    ];
+    const results = [];
+    for (const m of candidates) {
+      try {
+        const r = await client.messages.create({
+          model: m, max_tokens: 5,
+          messages: [{ role: 'user', content: 'say ok' }],
+        });
+        results.push({ model: m, ok: true, response: r.content[0]?.text });
+        break; // 성공하면 중단
+      } catch (e) {
+        results.push({ model: m, ok: false, status: e.status, error: e.message?.slice(0, 100) });
+      }
     }
+    json(res, 200, { results });
     return;
   }
 
