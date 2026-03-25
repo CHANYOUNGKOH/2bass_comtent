@@ -1036,7 +1036,10 @@ async function handler(req, res) {
   if (req.method === 'GET') {
     const safePath = path.normalize(pathname).replace(/^(\.\.[/\\])+/, '');
     const filePath = path.join(HTML_DIR, safePath);
-    if (filePath.startsWith(HTML_DIR) && fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+    const exists = fs.existsSync(filePath);
+    const isFile = exists && fs.statSync(filePath).isFile();
+    const startsOk = filePath.startsWith(HTML_DIR);
+    if (startsOk && exists && isFile) {
       if (filePath.endsWith('.html')) {
         let html = fs.readFileSync(filePath, 'utf8');
         const rootEscaped = ROOT.replace(/\\/g, '\\\\');
@@ -1048,6 +1051,10 @@ async function handler(req, res) {
         serveStatic(res, filePath);
       }
       return;
+    }
+    // 디버그: HTML 요청인데 못 찾은 경우
+    if (pathname.endsWith('.html')) {
+      console.error(`[404] ${pathname} → filePath=${filePath} | startsWith=${startsOk} | exists=${exists} | isFile=${isFile}`);
     }
   }
 
