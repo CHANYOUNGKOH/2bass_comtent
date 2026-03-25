@@ -86,17 +86,24 @@ try {
   }
 } catch { /* no process on port — OK */ }
 
-// ── 5. Generate dashboard HTML if missing ──
-const indexHtml = path.join(ROOT, 'data', 'publish', 'naver-v2-html', '_index.html');
-if (!fs.existsSync(indexHtml)) {
-  log('INIT', 'Generating dashboard HTML...');
+// ── 5. Sync extracted images → SSOT, then generate HTML ──
+const manifestFile = path.join(ROOT, 'output', 'images', 'manifest.json');
+if (fs.existsSync(manifestFile)) {
+  log('SYNC', 'Syncing extracted images to SSOT...');
   try {
-    execSync('node scripts/naver-blog-publish-html.js', { cwd: ROOT, stdio: 'inherit' });
+    execSync('node scripts/content-extract-images.js --sync', { cwd: ROOT, stdio: 'inherit' });
   } catch {
-    log('WARN', 'HTML generation failed - server mode will be used.');
+    log('WARN', 'Image sync failed - continuing.');
   }
-  console.log('');
 }
+
+log('INIT', 'Generating dashboard HTML...');
+try {
+  execSync('node scripts/naver-blog-publish-html.js', { cwd: ROOT, stdio: 'inherit' });
+} catch {
+  log('WARN', 'HTML generation failed - server mode will be used.');
+}
+console.log('');
 
 // ── 6. Open browser ──
 console.log('');
