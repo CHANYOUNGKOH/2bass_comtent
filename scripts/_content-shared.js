@@ -605,15 +605,10 @@ export function buildMultiCTA(ssot, intent) {
   const softCTA = CTA_BY_CONTEXT.symptom[symptomKey] + ` (📞 ${CTA.phone})`;
   const midCTA = CTA_BY_CONTEXT.work[workKey] + ` → 톡톡 문의: ${CTA.talk}`;
 
-  // 풀 CTA: 정보형은 테이블, 거래형은 인라인
-  let fullCTA;
-  if (intent === 'transactional') {
-    fullCTA = `궁금하신 점은 전화(${CTA.phone})나 네이버 톡톡(${CTA.talk})으로 편하게 문의해 주세요.\n네이버 예약도 가능합니다 → ${CTA.place}`;
-  } else {
-    const hasParts = (ssot.work?.parts || []).length > 0;
-    fullCTA = `📞 전화 문의 → ${CTA.phone}\n네이버 톡톡 문의 → ${CTA.talk}\n카카오톡 문의 → ${CTA.kakao}\n📅 네이버 예약 → ${CTA.place}`;
-    if (hasParts) fullCTA += `\n🛒 부품 구매 → ${CTA.store}`;
-  }
+  // 풀 CTA: 정보형/거래형 모두 테이블형
+  const hasParts = (ssot.work?.parts || []).length > 0;
+  let fullCTA = `📞 전화 문의 → ${CTA.phone}\n네이버 톡톡 문의 → ${CTA.talk}\n카카오톡 문의 → ${CTA.kakao}\n📅 네이버 예약 → ${CTA.place}`;
+  if (hasParts) fullCTA += `\n🛒 부품 구매 → ${CTA.store}`;
 
   return { softCTA, midCTA, fullCTA };
 }

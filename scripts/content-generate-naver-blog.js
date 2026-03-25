@@ -185,9 +185,12 @@ function selectBlog2Angle(ssot, factSheet, blog1AngleId) {
 function buildImageContext(ssot) {
   const positions = ssot.images?.positions || [];
   const files = ssot.images?.files || [];
-  if (positions.length === 0 && files.length === 0) return '';
+  const imgCount = ssot.images?.count || 0;
 
-  const count = Math.max(positions.length, files.length);
+  // count 기반: files/positions 없어도 count > 0이면 제네릭 마커 생성
+  const count = Math.max(positions.length, files.length, imgCount);
+  if (count === 0) return '';
+
   const lines = [];
   for (let i = 0; i < count; i++) {
     const prev = positions[i]?.prevText;
@@ -289,14 +292,17 @@ ${consumerKw.join(', ') || '없음'}
 - 얇은 글보다 근거 있는 글이 매출 전환율이 높습니다.
 </volume_guide>
 
-${imageContext ? `<images>\n${imageContext}</images>\n` : ''}<image_captions>
+${imageContext ? `<images>\n${imageContext}</images>\n
+<image_captions>
 - 각 [사진N] 마커 바로 아래에 한 줄 캡션을 작성하세요.
 - 캡션은 이미지 내용을 설명하면서 SEO 키워드를 자연스럽게 포함.
 - 형식: "▲ 캡션 텍스트"
 - 예: "▲ 브렘보 4P 캘리퍼 프론트 장착 완료 모습"
 - 예: "▲ 썬디스크 355mm 로터와 순정 디스크 크기 비교"
 - 캡션이 없는 이미지도 괜찮습니다. 설명이 자연스러운 이미지에만 작성.
-</image_captions>
+</image_captions>` : `<no_images>
+이 포스트에는 이미지가 없습니다. [사진N], 📷, ▲ 캡션 등 이미지 관련 마커를 절대 삽입하지 마세요.
+</no_images>`}
 
 <cta>
 ${ctaBlock}
@@ -386,16 +392,8 @@ const CTA_LEADINS = {
   customer_story:      '주변 분들의 소개로 많이 찾아주십니다.',
 };
 
-function buildContextualCTA(postType, hasParts, isBlog2 = false) {
+function buildContextualCTA(postType, hasParts) {
   const leadin = CTA_LEADINS[postType] || CTA_LEADINS.case_study;
-
-  if (isBlog2) {
-    // Blog2: 인라인 텍스트형 CTA
-    let block = `${leadin}\n\n`;
-    block += `궁금하신 점은 전화(${CTA.phone})나 네이버 톡톡(${CTA.talk})으로 편하게 문의해 주세요.\n`;
-    block += `네이버 예약도 가능합니다 → ${CTA.place}`;
-    return block;
-  }
 
   let block = `${leadin}\n\n`;
   block += `📞 전화 문의 → ${CTA.phone}\n`;
@@ -642,7 +640,7 @@ async function generateBlog2Post(ssotPath) {
 
   // 다중 CTA (거래형)
   const hasParts = (ssot.work?.parts || []).length > 0;
-  const ctaBlock = buildContextualCTA(postType, hasParts, true);
+  const ctaBlock = buildContextualCTA(postType, hasParts);
   const multiCTA = buildMultiCTA(ssot, searchIntent);
 
   // 지역 SEO
@@ -679,8 +677,6 @@ ${diffInstruction}
 - 섹션 구분: ■ 대신 ▸ 사용
 - 이미지: 핵심 결과 사진을 상단에 배치하되, 본문 첫 줄은 반드시 텍스트 문장으로 시작. [사진N]으로 시작 금지.
 - 사진 설명: 기술 스펙이 아닌 체감 차이 중심으로 작성
-- CTA: 테이블 대신 본문 마지막 단락에 자연스럽게 녹여서
-  예) "궁금하신 점은 전화(010-4150-3199)나 톡톡으로 편하게 문의해 주세요."
 - 강조: 볼드 대신 「인용」 스타일
 - 구조: 결과/변화 먼저 → 작업 과정 → 왜 필요했는지 (역시간순)
 - 도입부: 결과/체감 변화를 바로 서술. "~보여드립니다", "~기록부터" 같은 메타 표현 금지.
