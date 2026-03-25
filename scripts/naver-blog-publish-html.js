@@ -420,14 +420,17 @@ function buildPostHtml(post, allPostIds, postIndex, blog2Post) {
 
   // SSOT에서 이미지 파일 경로(files, dir)를 항상 읽기 — published JSON의 files/dir은 무시
   // (imageAlts, positions 등 콘텐츠 메타데이터는 published JSON 유지)
+  // blog1, blog2 모두 동일한 이미지를 공유하므로 둘 다 적용
   {
     const ssotPath = path.join(SSOT_DIR, `${post.postId}.json`);
     if (fs.existsSync(ssotPath)) {
       try {
         const ssot = JSON.parse(fs.readFileSync(ssotPath, 'utf8'));
-        if (!post.images) post.images = {};
-        if (ssot.images?.files?.length) post.images.files = ssot.images.files;
-        if (ssot.images?.dir) post.images.dir = ssot.images.dir;
+        for (const target of [post, blog2Post].filter(Boolean)) {
+          if (!target.images) target.images = {};
+          if (ssot.images?.files?.length) target.images.files = ssot.images.files;
+          if (ssot.images?.dir) target.images.dir = ssot.images.dir;
+        }
       } catch (_) { /* ignore parse errors */ }
     }
   }
