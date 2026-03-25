@@ -418,16 +418,15 @@ function buildPostHtml(post, allPostIds, postIndex, blog2Post) {
   const prevId = postIndex > 0 ? allPostIds[postIndex - 1] : null;
   const nextId = postIndex < allPostIds.length - 1 ? allPostIds[postIndex + 1] : null;
 
-  // SSOT images.files 항상 우선 참조: SSOT가 더 많은 파일을 가지고 있으면 교체
-  if (post.images) {
+  // SSOT에서 이미지 파일 경로(files, dir)를 항상 읽기 — published JSON의 files/dir은 무시
+  // (imageAlts, positions 등 콘텐츠 메타데이터는 published JSON 유지)
+  {
     const ssotPath = path.join(SSOT_DIR, `${post.postId}.json`);
     if (fs.existsSync(ssotPath)) {
       try {
         const ssot = JSON.parse(fs.readFileSync(ssotPath, 'utf8'));
-        if (ssot.images?.files?.length &&
-            ssot.images.files.length > (post.images.files || []).length) {
-          post.images.files = ssot.images.files;
-        }
+        if (!post.images) post.images = {};
+        if (ssot.images?.files?.length) post.images.files = ssot.images.files;
         if (ssot.images?.dir) post.images.dir = ssot.images.dir;
       } catch (_) { /* ignore parse errors */ }
     }
@@ -594,14 +593,13 @@ function buildPostHtml(post, allPostIds, postIndex, blog2Post) {
   ${(() => {
     const imgDir = post.images?.dir || path.join('output', 'images', post.postId);
     const imgFileList = (post.images?.files || []);
-    const seoNames = (post.images?.seoFileNames || []);
     const alts = (post.images?.imageAlts || []);
     const posCount = (post.images?.positions || []).length;
     const totalImgs = Math.max(imgFileList.length, posCount);
     if (totalImgs === 0) return '';
     let rows = '';
     for (let i = 0; i < totalImgs; i++) {
-      const fileName = imgFileList[i] || seoNames[i] || ('사진' + (i+1) + '.jpg');
+      const fileName = imgFileList[i] || `img_${String(i+1).padStart(3,'0')}.jpg`;
       const absPath = path.resolve(ROOT, imgDir, fileName);
       const alt = alts[i] || '';
       rows += '<div class="ref-row" style="display:flex; align-items:center; gap:8px; margin:2px 0; padding:4px 8px; background:#fff; border-radius:4px; border:1px solid #eee; cursor:pointer;" onclick="copyText(IMG_PATHS[' + i + '], \'사진' + (i+1) + ' 절대경로 복사됨!\')">'
@@ -686,12 +684,11 @@ const BANNER_LABEL = '매장 배너';
 const IMG_PATHS = ${JSON.stringify((() => {
   const imgDir = post.images?.dir || path.join('output', 'images', post.postId);
   const imgFileList = post.images?.files || [];
-  const seoNames = post.images?.seoFileNames || [];
   const posCount = (post.images?.positions || []).length;
   const total = Math.max(imgFileList.length, posCount);
   const paths = [];
   for (let i = 0; i < total; i++) {
-    const fileName = imgFileList[i] || seoNames[i] || ('사진' + (i+1) + '.jpg');
+    const fileName = imgFileList[i] || `img_${String(i+1).padStart(3,'0')}.jpg`;
     paths.push(path.resolve(ROOT, imgDir, fileName));
   }
   return paths;
