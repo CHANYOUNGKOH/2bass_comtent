@@ -19,7 +19,8 @@ if not exist data\ssot-posts mkdir data\ssot-posts
 if not exist data\publish\naver-v2-html mkdir data\publish\naver-v2-html
 if not exist data\publish\naver-v2 mkdir data\publish\naver-v2
 if not exist data\content mkdir data\content
-if not exist data\work mkdir data\work
+if not exist data\work\inbox mkdir data\work\inbox
+if not exist data\work\queue mkdir data\work\queue
 if not exist output\images mkdir output\images
 echo.
 echo 초기 설정 완료!
