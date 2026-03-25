@@ -863,11 +863,17 @@ async function handler(req, res) {
         }
       }
 
+      // 실제 파일 존재 여부로 generated 판정 (API 실패 시 거짓 양성 방지)
       const generated = [];
-      if (target === 'b1' || (!target && needB1)) generated.push('b1');
-      if (target === 'b2' || (!target && needB2)) generated.push('b2');
-      console.log(`[generate] ${postId} / ${platform}${target ? '/' + target : ''} 완료 (generated: ${generated.join(',')})${htmlWarning ? ' ⚠ HTML실패' : ''}`);
-      send('done', { ok: true, postId, target, generated, ...(htmlWarning && { warning: htmlWarning }) });
+      if (fs.existsSync(path.join(PUBLISH_DIR, `${postId}.json`))) generated.push('b1');
+      if (fs.existsSync(path.join(PUBLISH_DIR, `${postId}_blog2.json`))) generated.push('b2');
+      const actuallyGenerated = generated.length > 0;
+      console.log(`[generate] ${postId} / ${platform}${target ? '/' + target : ''} 완료 (generated: ${generated.join(',') || '없음'})${htmlWarning ? ' ⚠ HTML실패' : ''}`);
+      if (!actuallyGenerated) {
+        send('error', { message: '콘텐츠 생성 실패 — 서버 로그를 확인하세요' });
+      } else {
+        send('done', { ok: true, postId, target, generated, ...(htmlWarning && { warning: htmlWarning }) });
+      }
       res.end();
     } catch (e) {
       console.error(`[generate] 실패:`, e.message);
