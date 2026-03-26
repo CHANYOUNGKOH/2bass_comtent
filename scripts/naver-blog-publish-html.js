@@ -979,6 +979,38 @@ function buildIndexHtml(rows, opts) {
   /* Checkbox in table */
   .row-checkbox { width: 16px; height: 16px; cursor: pointer; accent-color: #03c75a; }
   th.cb-col, td.cb-col { width: 36px; text-align: center; padding: 6px 4px; }
+
+  /* Trash button */
+  .batch-bar .batch-btn.trash { background: #e53935; }
+  .batch-bar .batch-btn.trash:hover { background: #c62828; }
+
+  /* Trash modal */
+  .trash-modal-overlay {
+    display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center;
+  }
+  .trash-modal-overlay.open { display: flex; }
+  .trash-modal-content {
+    background: #fff; border-radius: 12px; padding: 24px; max-width: 700px; width: 95%;
+    max-height: 80vh; display: flex; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+  }
+  .trash-modal-content h3 { margin: 0 0 16px; font-size: 18px; }
+  .trash-modal-content table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .trash-modal-content th { background: #f5f5f5; color: #333; padding: 8px; text-align: left; font-size: 12px; position: static; }
+  .trash-modal-content td { padding: 7px 8px; border-bottom: 1px solid #f0f0f0; }
+  .trash-modal-content .trash-table-wrap { overflow-y: auto; flex: 1; min-height: 0; }
+  .trash-modal-content .trash-actions {
+    display: flex; gap: 8px; margin-top: 16px; justify-content: flex-end; padding-top: 12px; border-top: 1px solid #eee;
+  }
+  .trash-modal-content .trash-actions button {
+    padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600;
+  }
+  .trash-modal-content .trash-actions .restore-btn { background: #e8f5e9; color: #2e7d32; }
+  .trash-modal-content .trash-actions .restore-btn:hover { background: #c8e6c9; }
+  .trash-modal-content .trash-actions .delete-btn { background: #ffebee; color: #c62828; }
+  .trash-modal-content .trash-actions .delete-btn:hover { background: #ffcdd2; }
+  .trash-modal-content .trash-actions .close-btn { background: #f5f5f5; color: #333; border: 1px solid #ddd; }
+  .trash-empty { text-align: center; padding: 40px 20px; color: #999; font-size: 14px; }
 </style>
 ${embeddedScript}</head>
 <body>
@@ -998,6 +1030,7 @@ ${embeddedScript}</head>
     <span class="stat">당근: 예정</span>
     <span id="authBadge" class="conn-badge" style="display:none; cursor:pointer;" onclick="showAuthModal()" title="클릭하여 인증 관리">인증: 확인 중</span>
     <button class="refresh-btn" id="refreshBtn" style="display:none;" onclick="refreshData()" title="서버에서 최신 데이터 다시 로드">새로고침</button>
+    <button class="refresh-btn" id="trashToggleBtn" style="display:none;" onclick="openTrashModal()" title="휴지통 열기">🗑 <span id="trashCount">0</span></button>
     <a href="work-guide.html" id="guideLink" style="display:none; padding:7px 14px; background:#f5f5f5; color:#333; border:1px solid #ccc; border-radius:6px; text-decoration:none; font-size:13px; font-weight:600; margin-left:auto;">작업 가이드</a>
     <a href="new-post-form.html" id="newPostLink" style="display:none; padding:7px 16px; background:#03c75a; color:#fff; border-radius:6px; text-decoration:none; font-size:14px; font-weight:700; margin-left:8px;">+ 새 글 작성</a>
   </div>
@@ -1060,6 +1093,7 @@ ${embeddedScript}</head>
   <!-- Batch action bar -->
   <div class="batch-bar" id="batchBar">
     <span class="batch-count" id="batchCount">0개 선택</span>
+    <button class="batch-btn trash" onclick="batchTrash()" id="batchTrashBtn">삭제</button>
     <button class="batch-btn naver" onclick="batchGenerate('naver')" id="batchNaverBtn">네이버 생성</button>
     <button class="batch-btn" disabled title="서버 미구현 — 준비중" style="background:#ccc;">메타 (준비중)</button>
     <button class="batch-btn" disabled title="서버 미구현 — 준비중" style="background:#ccc;">당근 (준비중)</button>
@@ -1102,6 +1136,21 @@ ${embeddedScript}</head>
 
   <div class="refresh-note">
     서버 모드: <code>start-dashboard.bat</code> &nbsp;|&nbsp; HTML 재생성: <code>node scripts/naver-blog-publish-html.js</code>
+  </div>
+</div>
+
+<!-- Trash modal -->
+<div class="trash-modal-overlay" id="trashModal">
+  <div class="trash-modal-content">
+    <h3>🗑 휴지통</h3>
+    <div class="trash-table-wrap" id="trashTableWrap">
+      <div class="trash-empty">로딩 중...</div>
+    </div>
+    <div class="trash-actions">
+      <button class="restore-btn" onclick="trashRestoreSelected()">복원</button>
+      <button class="delete-btn" onclick="trashDeleteSelected()">영구 삭제</button>
+      <button class="close-btn" onclick="closeTrashModal()">닫기</button>
+    </div>
   </div>
 </div>
 
@@ -1181,6 +1230,7 @@ function showServerUI() {
   if (refreshBtn) refreshBtn.style.display = '';
   checkAuthStatus();
   loadKvCacheStatus();
+  loadTrashCount();
 }
 
 var _lastAuthData = null;
@@ -2125,7 +2175,9 @@ function estimateBatchTime() {
 function updateBatchBar() {
   var bar = document.getElementById('batchBar');
   var naverBtn = document.getElementById('batchNaverBtn');
+  var trashBtn = document.getElementById('batchTrashBtn');
   if (naverBtn && !SERVER_MODE) naverBtn.style.display = 'none';
+  if (trashBtn && !SERVER_MODE) trashBtn.style.display = 'none';
   var count = selectedIds.size;
   if (count > 0 || batchRunning) {
     bar.classList.add('visible');
@@ -2523,6 +2575,144 @@ async function batchGenerate(platform) {
 
   render();
   updateBatchBar();
+}
+
+// ── Trash functions ──
+var trashSelectedIds = new Set();
+
+function loadTrashCount() {
+  if (!SERVER_MODE) return;
+  fetch('/api/trash-list')
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      var count = (d.items || []).length;
+      var el = document.getElementById('trashCount');
+      if (el) el.textContent = count;
+      var btn = document.getElementById('trashToggleBtn');
+      if (btn) btn.style.display = count > 0 ? '' : 'none';
+    })
+    .catch(function() {});
+}
+
+function batchTrash() {
+  if (!SERVER_MODE) { showToast('서버 모드에서만 삭제 가능합니다.'); return; }
+  var ids = Array.from(selectedIds);
+  if (ids.length === 0) { showToast('선택된 항목이 없습니다'); return; }
+  if (!confirm(ids.length + '개를 휴지통으로 이동하시겠습니까?')) return;
+
+  fetch('/api/trash-ssot', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ postIds: ids })
+  }).then(function(r) { return r.json(); }).then(function(d) {
+    if (d.ok) {
+      showToast(d.moved + '개 휴지통 이동 완료');
+      clearSelection();
+      refreshData();
+      loadTrashCount();
+    } else {
+      showToast('삭제 실패: ' + (d.error || ''));
+    }
+  }).catch(function(e) { showToast('삭제 실패: ' + e.message); });
+}
+
+function openTrashModal() {
+  trashSelectedIds.clear();
+  var modal = document.getElementById('trashModal');
+  modal.classList.add('open');
+  var wrap = document.getElementById('trashTableWrap');
+  wrap.innerHTML = '<div class="trash-empty">로딩 중...</div>';
+
+  fetch('/api/trash-list')
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      var items = d.items || [];
+      if (items.length === 0) {
+        wrap.innerHTML = '<div class="trash-empty">휴지통이 비어 있습니다.</div>';
+        return;
+      }
+      var html = '<table><thead><tr>'
+        + '<th style="width:36px;text-align:center;"><input type="checkbox" onchange="trashToggleAll(this.checked)"></th>'
+        + '<th>ID</th><th>브랜드</th><th>차종</th><th>작업</th><th>삭제일</th><th>파일</th>'
+        + '</tr></thead><tbody>';
+      items.forEach(function(item) {
+        var dateStr = item.trashedAt ? item.trashedAt.slice(0, 16).replace('T', ' ') : '-';
+        var filesStr = (item.hasFiles || []).join(', ') || 'ssot';
+        html += '<tr>'
+          + '<td style="text-align:center;"><input type="checkbox" class="trash-cb" value="' + esc(item.postId) + '" onchange="trashToggleItem(this)"></td>'
+          + '<td style="font-size:11px; max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="' + esc(item.postId) + '">' + esc(item.postId) + '</td>'
+          + '<td>' + esc(item.brand) + '</td>'
+          + '<td>' + esc(item.model) + '</td>'
+          + '<td>' + esc(item.workType) + '</td>'
+          + '<td style="font-size:11px; color:#888;">' + dateStr + '</td>'
+          + '<td style="font-size:11px; color:#aaa;">' + filesStr + '</td>'
+          + '</tr>';
+      });
+      html += '</tbody></table>';
+      wrap.innerHTML = html;
+    })
+    .catch(function(e) {
+      wrap.innerHTML = '<div class="trash-empty">로드 실패: ' + esc(e.message) + '</div>';
+    });
+}
+
+function closeTrashModal() {
+  document.getElementById('trashModal').classList.remove('open');
+}
+
+function trashToggleItem(cb) {
+  if (cb.checked) trashSelectedIds.add(cb.value);
+  else trashSelectedIds.delete(cb.value);
+}
+
+function trashToggleAll(checked) {
+  var cbs = document.querySelectorAll('.trash-cb');
+  cbs.forEach(function(cb) {
+    cb.checked = checked;
+    if (checked) trashSelectedIds.add(cb.value);
+    else trashSelectedIds.delete(cb.value);
+  });
+}
+
+function trashRestoreSelected() {
+  var ids = Array.from(trashSelectedIds);
+  if (ids.length === 0) { showToast('복원할 항목을 선택하세요'); return; }
+  if (!confirm(ids.length + '개를 복원하시겠습니까?')) return;
+
+  fetch('/api/trash-restore', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ postIds: ids })
+  }).then(function(r) { return r.json(); }).then(function(d) {
+    if (d.ok) {
+      showToast(d.restored + '개 복원 완료');
+      refreshData();
+      loadTrashCount();
+      openTrashModal();
+    } else {
+      showToast('복원 실패: ' + (d.error || ''));
+    }
+  }).catch(function(e) { showToast('복원 실패: ' + e.message); });
+}
+
+function trashDeleteSelected() {
+  var ids = Array.from(trashSelectedIds);
+  if (ids.length === 0) { showToast('삭제할 항목을 선택하세요'); return; }
+  if (!confirm(ids.length + '개를 영구 삭제하시겠습니까?\\n이 작업은 되돌릴 수 없습니다.')) return;
+
+  fetch('/api/trash-delete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ postIds: ids })
+  }).then(function(r) { return r.json(); }).then(function(d) {
+    if (d.ok) {
+      showToast(d.deleted + '개 영구 삭제 완료');
+      loadTrashCount();
+      openTrashModal();
+    } else {
+      showToast('삭제 실패: ' + (d.error || ''));
+    }
+  }).catch(function(e) { showToast('삭제 실패: ' + e.message); });
 }
 
 // ── Init ──
