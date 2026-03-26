@@ -47,6 +47,7 @@ if (process.env.NAVER_AD_CUSTOMER_ID) {
 }
 
 const KV_CACHE_PATH = path.join(ROOT, 'data/work/keyword-volume-cache.json');
+const TRASH_DIR = path.join(ROOT, 'data/_trash');
 const SSOT_DIR = path.join(ROOT, 'data/ssot-posts');
 const PUBLISH_DIR = path.join(ROOT, 'data/publish/naver-v2');
 const HTML_DIR = path.join(ROOT, 'data/publish/naver-v2-html');
@@ -1063,6 +1064,215 @@ async function handler(req, res) {
       } else {
         json(res, 500, { error: e.message });
       }
+    }
+    return;
+  }
+
+  // ── POST /api/trash-ssot — 휴지통으로 이동 ──
+  if (req.method === 'POST' && pathname === '/api/trash-ssot') {
+    try {
+      const body = await readBody(req);
+      const { postIds } = JSON.parse(body);
+      if (!Array.isArray(postIds) || postIds.length === 0) return json(res, 400, { error: 'postIds 배열 필수' });
+
+      let moved = 0;
+      for (const postId of postIds) {
+        const trashPostDir = path.join(TRASH_DIR, postId);
+        ensureDir(trashPostDir);
+
+        // 이동 대상 목록
+        const moves = [
+          { src: path.join(SSOT_DIR, `${postId}.json`), dest: path.join(trashPostDir, 'ssot.json') },
+          { src: path.join(PUBLISH_DIR, `${postId}.json`), dest: path.join(trashPostDir, 'blog1.json') },
+          { src: path.join(PUBLISH_DIR, `${postId}_blog2.json`), dest: path.join(trashPostDir, 'blog2.json') },
+          { src: path.join(HTML_DIR, `${postId}.html`), dest: path.join(trashPostDir, 'html.html') },
+        ];
+
+        let movedAny = false;
+        for (const { src, dest } of moves) {
+          if (fs.existsSync(src)) {
+            fs.renameSync(src, dest);
+            movedAny = true;
+          }
+        }
+
+        // images 디렉토리 이동
+        const imgSrc = path.join(IMAGES_DIR, postId);
+        if (fs.existsSync(imgSrc)) {
+          const imgDest = path.join(trashPostDir, 'images');
+          ensureDir(imgDest);
+          for (const f of fs.readdirSync(imgSrc)) {
+            fs.renameSync(path.join(imgSrc, f), path.join(imgDest, f));
+          }
+          fs.rmdirSync(imgSrc);
+          movedAny = true;
+        }
+
+        // warnings 이동
+        const warnDir = path.join(PUBLISH_DIR, '_warnings');
+        if (fs.existsSync(warnDir)) {
+          for (const f of fs.readdirSync(warnDir)) {
+            if (f.startsWith(postId)) {
+              fs.renameSync(path.join(warnDir, f), path.join(trashPostDir, f));
+              movedAny = true;
+            }
+          }
+        }
+
+        // naver-v2-status.json에서 해당 항목 제거
+        if (fs.existsSync(STATUS_FILE)) {
+          try {
+            const st = JSON.parse(fs.readFileSync(STATUS_FILE, 'utf8'));
+            if (st.posts && st.posts[postId]) {
+              delete st.posts[postId];
+              fs.writeFileSync(STATUS_FILE, JSON.stringify(st, null, 2));
+            }
+          } catch { /* skip */ }
+        }
+
+        // _meta.json 기록
+        fs.writeFileSync(path.join(trashPostDir, '_meta.json'), JSON.stringify({
+          postId,
+          trashedAt: new Date().toISOString(),
+        }, null, 2));
+
+        if (movedAny) moved++;
+      }
+
+      console.log(`[trash] ${moved}개 휴지통 이동`);
+      json(res, 200, { ok: true, moved });
+    } catch (e) {
+      json(res, 500, { error: e.message });
+    }
+    return;
+  }
+
+  // ── GET /api/trash-list — 휴지통 목록 ──
+  if (req.method === 'GET' && pathname === '/api/trash-list') {
+    try {
+      const items = [];
+      if (fs.existsSync(TRASH_DIR)) {
+        for (const dir of fs.readdirSync(TRASH_DIR)) {
+          const dirPath = path.join(TRASH_DIR, dir);
+          if (!fs.statSync(dirPath).isDirectory()) continue;
+          const ssotPath = path.join(dirPath, 'ssot.json');
+          const metaPath = path.join(dirPath, '_meta.json');
+          let postId = dir, brand = '', model = '', workType = '', trashedAt = '';
+          if (fs.existsSync(ssotPath)) {
+            try {
+              const ssot = JSON.parse(fs.readFileSync(ssotPath, 'utf8'));
+              postId = ssot.postId || dir;
+              brand = (ssot.vehicle && ssot.vehicle.brand) || '';
+              model = (ssot.vehicle && ssot.vehicle.model) || '';
+              workType = (ssot.work && ssot.work.type) || '';
+            } catch { /* skip */ }
+          }
+          if (fs.existsSync(metaPath)) {
+            try {
+              const meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
+              trashedAt = meta.trashedAt || '';
+            } catch { /* skip */ }
+          }
+          // 어떤 파일이 있는지
+          const hasFiles = [];
+          if (fs.existsSync(path.join(dirPath, 'blog1.json'))) hasFiles.push('blog1');
+          if (fs.existsSync(path.join(dirPath, 'blog2.json'))) hasFiles.push('blog2');
+          if (fs.existsSync(path.join(dirPath, 'html.html'))) hasFiles.push('html');
+          if (fs.existsSync(path.join(dirPath, 'images'))) hasFiles.push('images');
+          items.push({ postId, brand, model, workType, trashedAt, hasFiles });
+        }
+      }
+      items.sort((a, b) => (b.trashedAt || '').localeCompare(a.trashedAt || ''));
+      json(res, 200, { items });
+    } catch (e) {
+      json(res, 500, { error: e.message });
+    }
+    return;
+  }
+
+  // ── POST /api/trash-restore — 복원 ──
+  if (req.method === 'POST' && pathname === '/api/trash-restore') {
+    try {
+      const body = await readBody(req);
+      const { postIds } = JSON.parse(body);
+      if (!Array.isArray(postIds) || postIds.length === 0) return json(res, 400, { error: 'postIds 배열 필수' });
+
+      let restored = 0;
+      for (const postId of postIds) {
+        const trashPostDir = path.join(TRASH_DIR, postId);
+        if (!fs.existsSync(trashPostDir)) continue;
+
+        const restores = [
+          { src: path.join(trashPostDir, 'ssot.json'), dest: path.join(SSOT_DIR, `${postId}.json`) },
+          { src: path.join(trashPostDir, 'blog1.json'), dest: path.join(PUBLISH_DIR, `${postId}.json`) },
+          { src: path.join(trashPostDir, 'blog2.json'), dest: path.join(PUBLISH_DIR, `${postId}_blog2.json`) },
+          { src: path.join(trashPostDir, 'html.html'), dest: path.join(HTML_DIR, `${postId}.html`) },
+        ];
+
+        for (const { src, dest } of restores) {
+          if (fs.existsSync(src)) {
+            ensureDir(path.dirname(dest));
+            fs.renameSync(src, dest);
+          }
+        }
+
+        // images 복원
+        const imgSrc = path.join(trashPostDir, 'images');
+        if (fs.existsSync(imgSrc)) {
+          const imgDest = path.join(IMAGES_DIR, postId);
+          ensureDir(imgDest);
+          for (const f of fs.readdirSync(imgSrc)) {
+            fs.renameSync(path.join(imgSrc, f), path.join(imgDest, f));
+          }
+          fs.rmdirSync(imgSrc);
+        }
+
+        // warnings 복원
+        const warnDir = path.join(PUBLISH_DIR, '_warnings');
+        for (const f of fs.readdirSync(trashPostDir)) {
+          if (f.endsWith('.txt') && f.startsWith(postId)) {
+            ensureDir(warnDir);
+            fs.renameSync(path.join(trashPostDir, f), path.join(warnDir, f));
+          }
+        }
+
+        // _meta.json 정리 후 디렉토리 삭제
+        const metaPath = path.join(trashPostDir, '_meta.json');
+        if (fs.existsSync(metaPath)) fs.unlinkSync(metaPath);
+        // 남은 파일이 없으면 디렉토리 삭제
+        const remaining = fs.readdirSync(trashPostDir);
+        if (remaining.length === 0) fs.rmdirSync(trashPostDir);
+
+        restored++;
+      }
+
+      console.log(`[trash] ${restored}개 복원`);
+      json(res, 200, { ok: true, restored });
+    } catch (e) {
+      json(res, 500, { error: e.message });
+    }
+    return;
+  }
+
+  // ── POST /api/trash-delete — 영구 삭제 ──
+  if (req.method === 'POST' && pathname === '/api/trash-delete') {
+    try {
+      const body = await readBody(req);
+      const { postIds } = JSON.parse(body);
+      if (!Array.isArray(postIds) || postIds.length === 0) return json(res, 400, { error: 'postIds 배열 필수' });
+
+      let deleted = 0;
+      for (const postId of postIds) {
+        const trashPostDir = path.join(TRASH_DIR, postId);
+        if (!fs.existsSync(trashPostDir)) continue;
+        fs.rmSync(trashPostDir, { recursive: true, force: true });
+        deleted++;
+      }
+
+      console.log(`[trash] ${deleted}개 영구 삭제`);
+      json(res, 200, { ok: true, deleted });
+    } catch (e) {
+      json(res, 500, { error: e.message });
     }
     return;
   }
