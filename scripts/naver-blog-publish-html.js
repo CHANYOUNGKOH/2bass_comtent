@@ -983,6 +983,53 @@ function buildIndexHtml(rows, opts) {
   /* Trash button */
   .batch-bar .batch-btn.trash { background: #e53935; }
   .batch-bar .batch-btn.trash:hover { background: #c62828; }
+  .batch-bar .batch-btn.meta { background: #e1306c; }
+  .batch-bar .batch-btn.meta:hover { background: #c91b5e; }
+
+  /* Meta preview modal */
+  .meta-modal-overlay {
+    display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center;
+  }
+  .meta-modal-overlay.visible { display: flex; }
+  .meta-modal-content {
+    background: #fff; border-radius: 12px; padding: 24px; max-width: 520px; width: 95%;
+    max-height: 85vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+  }
+  .meta-preview-box {
+    background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 6px; padding: 12px;
+    font-size: 13px; line-height: 1.7; white-space: pre-wrap; word-break: break-word;
+    max-height: 180px; overflow-y: auto;
+  }
+  .meta-copy-btn {
+    background: #f0f0f0; border: 1px solid #ddd; border-radius: 4px; padding: 3px 10px;
+    font-size: 11px; cursor: pointer; color: #555;
+  }
+  .meta-copy-btn:hover { background: #e0e0e0; }
+  .meta-copy-all-btn {
+    flex: 1; background: #e1306c; color: #fff; border: none; border-radius: 6px;
+    padding: 10px; font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  .meta-copy-all-btn:hover { background: #c91b5e; }
+  .meta-copy-all-btn.fb { background: #1877f2; }
+  .meta-copy-all-btn.fb:hover { background: #1565c0; }
+  .meta-publish-btn {
+    flex: 1; background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9;
+    border-radius: 6px; padding: 10px; font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  .meta-publish-btn:hover { background: #c8e6c9; }
+  .meta-tab-bar {
+    display: flex; gap: 0; margin-bottom: 16px; border-bottom: 2px solid #eee;
+  }
+  .meta-tab-btn {
+    flex: 1; padding: 10px 0; border: none; background: none; cursor: pointer;
+    font-size: 13px; font-weight: 600; color: #888; border-bottom: 2px solid transparent;
+    margin-bottom: -2px; transition: all 0.15s;
+  }
+  .meta-tab-btn.active { color: #e1306c; border-bottom-color: #e1306c; }
+  .meta-tab-btn.active.fb { color: #1877f2; border-bottom-color: #1877f2; }
+  .meta-tab-panel { display: none; }
+  .meta-tab-panel.active { display: block; }
 
   /* Trash modal */
   .trash-modal-overlay {
@@ -1095,7 +1142,7 @@ ${embeddedScript}</head>
     <span class="batch-count" id="batchCount">0개 선택</span>
     <button class="batch-btn trash" onclick="batchTrash()" id="batchTrashBtn">삭제</button>
     <button class="batch-btn naver" onclick="batchGenerate('naver')" id="batchNaverBtn">네이버 생성</button>
-    <button class="batch-btn" disabled title="서버 미구현 — 준비중" style="background:#ccc;">메타 (준비중)</button>
+    <button class="batch-btn meta" onclick="batchGenerate('meta')" id="batchMetaBtn">메타 생성</button>
     <button class="batch-btn" disabled title="서버 미구현 — 준비중" style="background:#ccc;">당근 (준비중)</button>
     <button class="batch-btn" disabled title="서버 미구현 — 준비중" style="background:#ccc;">영상 (준비중)</button>
     <div class="batch-progress" id="batchProgress">
@@ -1150,6 +1197,19 @@ ${embeddedScript}</head>
       <button class="restore-btn" onclick="trashRestoreSelected()">복원</button>
       <button class="delete-btn" onclick="trashDeleteSelected()">영구 삭제</button>
       <button class="close-btn" onclick="closeTrashModal()">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- Meta preview modal -->
+<div class="meta-modal-overlay" id="metaPreviewModal" onclick="if(event.target===this)closeMetaPreview()">
+  <div class="meta-modal-content">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <h3 style="margin:0;font-size:16px;">메타 콘텐츠 미리보기</h3>
+      <button onclick="closeMetaPreview()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#888;">&times;</button>
+    </div>
+    <div id="metaPreviewBody">
+      <div style="text-align:center;padding:40px;color:#888;">로딩 중...</div>
     </div>
   </div>
 </div>
@@ -1732,7 +1792,7 @@ function onStatusClick(postId, platform) {
   var label = PLATFORM_LABEL[platform] || platform;
 
   if (st === 'none') {
-    if (platform === 'meta' || platform === 'daangn') {
+    if (platform === 'daangn') {
       showToast(label + ' 생성은 아직 준비중입니다.');
       return;
     }
@@ -2027,7 +2087,7 @@ function render() {
       + '<td style="color:#555; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="' + esc(r.work) + '">' + esc(r.work) + '</td>'
       + '<td' + imgCellClass + imgCellClick + '>' + imgCellContent + '</td>'
       + '<td class="status-cell ' + nClass + '" data-id="' + r.id + '" data-platform="naver" onclick="onNaverView(&quot;' + r.id + '&quot;)" title="' + nTitle + '" style="' + ((eB1 !== 'none' || eB2 !== 'none') ? 'cursor:pointer;' : '') + '">' + nIcon + '</td>'
-      + '<td class="status-cell ' + statusClass(eMeta) + '" title="' + eMeta + ' (준비중)">' + statusIcon(eMeta) + '</td>'
+      + '<td class="status-cell ' + statusClass(eMeta) + '" data-id="' + r.id + '" data-platform="meta" onclick="onMetaClick(&quot;' + r.id + '&quot;)" style="cursor:pointer;" title="' + eMeta + '">' + statusIcon(eMeta) + '</td>'
       + '<td class="status-cell ' + statusClass(eDaangn) + '" title="' + eDaangn + ' (준비중)">' + statusIcon(eDaangn) + '</td>'
       + '</tr>';
   });
@@ -2175,8 +2235,10 @@ function estimateBatchTime() {
 function updateBatchBar() {
   var bar = document.getElementById('batchBar');
   var naverBtn = document.getElementById('batchNaverBtn');
+  var metaBtn = document.getElementById('batchMetaBtn');
   var trashBtn = document.getElementById('batchTrashBtn');
   if (naverBtn && !SERVER_MODE) naverBtn.style.display = 'none';
+  if (metaBtn && !SERVER_MODE) metaBtn.style.display = 'none';
   if (trashBtn && !SERVER_MODE) trashBtn.style.display = 'none';
   var count = selectedIds.size;
   if (count > 0 || batchRunning) {
@@ -2356,6 +2418,238 @@ function tickBatchBar() {
   }
 }
 
+// ── 메타 클릭 핸들러 ──
+function onMetaClick(postId) {
+  var row = ALL_DATA.find(function(r) { return r.id === postId; });
+  if (!row) return;
+  var eMeta = getEffective(row, 'meta');
+
+  if (eMeta === 'generated' || eMeta === 'published') {
+    // 별도 메타 발행 페이지 열기
+    window.open(postId + '_meta.html', '_blank');
+    return;
+  }
+
+  // 미생성 → 생성 시작
+  if (!SERVER_MODE) {
+    showToast('서버 모드에서만 생성 가능합니다.');
+    return;
+  }
+  showToast('메타 캡션 생성 시작...');
+  updateProgress(postId, 'meta', '생성 준비 중...');
+
+  fetch('/api/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ postId: postId, platform: 'meta' })
+  }).then(function(response) {
+    return readSSE(response, function(evt, done) {
+      if (evt.type === 'progress') updateProgress(postId, 'meta', evt.message);
+      if (evt.type === 'done') {
+        onGenerateDone(postId, 'meta');
+        done({ ok: true });
+      }
+      if (evt.type === 'error') {
+        showToast('메타 생성 실패: ' + evt.message);
+        render();
+        done({ ok: false, error: evt.message });
+      }
+    }, 'meta:' + postId);
+  }).catch(function(e) {
+    showToast('메타 생성 실패: ' + e.message);
+    render();
+  });
+}
+
+// ── 메타 미리보기 모달 (IG/FB 탭) ──
+var _metaActiveTab = 'ig';
+
+function openMetaPreview(postId) {
+  if (!SERVER_MODE) {
+    showToast('서버 모드에서만 미리보기 가능합니다.');
+    return;
+  }
+  var modal = document.getElementById('metaPreviewModal');
+  var body = document.getElementById('metaPreviewBody');
+  body.innerHTML = '<div style="text-align:center;padding:40px;color:#888;">로딩 중...</div>';
+  modal.classList.add('visible');
+  _metaActiveTab = 'ig';
+
+  fetch('/api/meta-preview/' + postId).then(function(r) { return r.json(); }).then(function(data) {
+    if (data.error) { body.innerHTML = '<div style="color:red;padding:20px;">' + data.error + '</div>'; return; }
+
+    // 하위호환: ig/fb 없으면 기존 필드로 fallback
+    var ig = data.ig || { caption: data.caption || '', hashtags: data.hashtags || '', cta: data.cta || '' };
+    var fb = data.fb || { caption: ig.caption, cta: '아래 링크에서 상담/예약하세요' };
+
+    var imgHtml = '';
+    if (data.images && data.images.length > 0) {
+      imgHtml = '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">';
+      data.images.slice(0, 6).forEach(function(src) {
+        imgHtml += '<img src="' + src + '" style="width:60px;height:60px;object-fit:cover;border-radius:4px;border:1px solid #ddd;">';
+      });
+      if (data.images.length > 6) imgHtml += '<span style="align-self:center;color:#888;font-size:12px;">+' + (data.images.length - 6) + '장</span>';
+      imgHtml += '</div>';
+    }
+
+    var vehicleInfo = '';
+    if (data.vehicle && (data.vehicle.brand || data.vehicle.model)) {
+      vehicleInfo = (data.vehicle.brand || '') + ' ' + (data.vehicle.model || '');
+    }
+
+    var hashCount = ig.hashtags ? (ig.hashtags.split('#').length - 1) : 0;
+
+    // ── IG 탭 ──
+    var igPanel = ''
+      + '<div style="margin-bottom:16px;">'
+      + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'
+      + '<strong style="font-size:13px;color:#333;">캡션</strong>'
+      + '<button class="meta-copy-btn" onclick="copyToClip(this, &quot;igCaptionText&quot;)">복사</button>'
+      + '</div>'
+      + '<div id="igCaptionText" class="meta-preview-box">' + esc(ig.caption) + '</div>'
+      + '</div>'
+      + '<div style="margin-bottom:16px;">'
+      + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'
+      + '<strong style="font-size:13px;color:#333;">해시태그 (' + hashCount + '개)</strong>'
+      + '<button class="meta-copy-btn" onclick="copyToClip(this, &quot;igHashtagsText&quot;)">복사</button>'
+      + '</div>'
+      + '<div id="igHashtagsText" class="meta-preview-box" style="color:#1a73e8;">' + esc(ig.hashtags) + '</div>'
+      + '</div>'
+      + '<div style="margin-bottom:16px;">'
+      + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'
+      + '<strong style="font-size:13px;color:#333;">CTA</strong>'
+      + '<button class="meta-copy-btn" onclick="copyToClip(this, &quot;igCtaText&quot;)">복사</button>'
+      + '</div>'
+      + '<div id="igCtaText" class="meta-preview-box">' + esc(ig.cta) + '</div>'
+      + '</div>'
+      + (data.imageCount > 0 ? '<div style="margin-bottom:16px;"><strong style="font-size:13px;color:#333;">이미지 (' + data.imageCount + '장)</strong>' + imgHtml + '</div>' : '')
+      + '<div style="display:flex;gap:8px;margin-top:16px;">'
+      + '<button class="meta-copy-all-btn" onclick="copyAllMetaIg()">전체 복사</button>'
+      + '<button class="meta-publish-btn" onclick="markPublished(&quot;' + postId + '&quot;, &quot;meta&quot;); closeMetaPreview();">발행 마킹</button>'
+      + '</div>';
+
+    // ── FB 탭 ──
+    var fbPanel = ''
+      + '<div style="margin-bottom:16px;">'
+      + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'
+      + '<strong style="font-size:13px;color:#333;">캡션 (링크 포함)</strong>'
+      + '<button class="meta-copy-btn" onclick="copyToClip(this, &quot;fbCaptionText&quot;)">복사</button>'
+      + '</div>'
+      + '<div id="fbCaptionText" class="meta-preview-box">' + esc(fb.caption) + '</div>'
+      + '</div>'
+      + '<div style="margin-bottom:16px;">'
+      + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'
+      + '<strong style="font-size:13px;color:#333;">CTA</strong>'
+      + '<button class="meta-copy-btn" onclick="copyToClip(this, &quot;fbCtaText&quot;)">복사</button>'
+      + '</div>'
+      + '<div id="fbCtaText" class="meta-preview-box">' + esc(fb.cta) + '</div>'
+      + '</div>'
+      + (data.imageCount > 0 ? '<div style="margin-bottom:16px;"><strong style="font-size:13px;color:#333;">이미지 (' + data.imageCount + '장)</strong>' + imgHtml + '</div>' : '')
+      + '<div style="display:flex;gap:8px;margin-top:16px;">'
+      + '<button class="meta-copy-all-btn fb" onclick="copyAllMetaFb()">전체 복사</button>'
+      + '<button class="meta-publish-btn" onclick="markPublished(&quot;' + postId + '&quot;, &quot;meta&quot;); closeMetaPreview();">발행 마킹</button>'
+      + '</div>';
+
+    body.innerHTML = ''
+      + '<div class="meta-tab-bar">'
+      + '<button class="meta-tab-btn active" id="metaTabIg" onclick="switchMetaTab(&quot;ig&quot;)">Instagram</button>'
+      + '<button class="meta-tab-btn" id="metaTabFb" onclick="switchMetaTab(&quot;fb&quot;)">Facebook</button>'
+      + '</div>'
+      + '<div class="meta-tab-panel active" id="metaPanelIg">' + igPanel + '</div>'
+      + '<div class="meta-tab-panel" id="metaPanelFb">' + fbPanel + '</div>'
+      + (vehicleInfo ? '<div style="font-size:11px;color:#888;margin-top:8px;">' + esc(vehicleInfo) + ' | ' + esc(data.work?.type || '') + '</div>' : '');
+  }).catch(function(e) {
+    body.innerHTML = '<div style="color:red;padding:20px;">로드 실패: ' + e.message + '</div>';
+  });
+}
+
+function switchMetaTab(tab) {
+  _metaActiveTab = tab;
+  var igBtn = document.getElementById('metaTabIg');
+  var fbBtn = document.getElementById('metaTabFb');
+  var igPanel = document.getElementById('metaPanelIg');
+  var fbPanel = document.getElementById('metaPanelFb');
+  if (tab === 'ig') {
+    igBtn.className = 'meta-tab-btn active';
+    fbBtn.className = 'meta-tab-btn';
+    igPanel.className = 'meta-tab-panel active';
+    fbPanel.className = 'meta-tab-panel';
+  } else {
+    igBtn.className = 'meta-tab-btn';
+    fbBtn.className = 'meta-tab-btn active fb';
+    igPanel.className = 'meta-tab-panel';
+    fbPanel.className = 'meta-tab-panel active';
+  }
+}
+
+function closeMetaPreview() {
+  document.getElementById('metaPreviewModal').classList.remove('visible');
+}
+
+function copyToClip(btn, elId) {
+  var text = document.getElementById(elId).textContent;
+  navigator.clipboard.writeText(text).then(function() {
+    var orig = btn.textContent;
+    btn.textContent = '완료!';
+    setTimeout(function() { btn.textContent = orig; }, 1500);
+  });
+}
+
+function copyAllMetaIg() {
+  var caption = (document.getElementById('igCaptionText') || {}).textContent || '';
+  var hashtags = (document.getElementById('igHashtagsText') || {}).textContent || '';
+  var cta = (document.getElementById('igCtaText') || {}).textContent || '';
+  var full = caption + '\\n\\n' + hashtags + '\\n\\n' + cta;
+  navigator.clipboard.writeText(full).then(function() {
+    showToast('IG 전체 복사 완료!');
+  });
+}
+
+function copyAllMetaFb() {
+  var caption = (document.getElementById('fbCaptionText') || {}).textContent || '';
+  var cta = (document.getElementById('fbCtaText') || {}).textContent || '';
+  var full = caption + '\\n\\n' + cta;
+  navigator.clipboard.writeText(full).then(function() {
+    showToast('FB 전체 복사 완료!');
+  });
+}
+
+// ── 배치 메타 생성 단건 ──
+function batchGenerateOneMeta(postId) {
+  var row = ALL_DATA.find(function(r) { return r.id === postId; });
+  if (!row) return Promise.resolve({ id: postId, ok: false, error: 'row not found' });
+
+  var eMeta = getEffective(row, 'meta');
+  if (eMeta === 'generated' || eMeta === 'published') {
+    return Promise.resolve({ id: postId, ok: true, skipped: true });
+  }
+
+  var cell = document.querySelector('[data-id="' + postId + '"][data-platform="meta"]');
+  if (cell) { cell.innerHTML = '<span class="spinner"></span>'; cell.title = '메타 생성 중...'; }
+
+  return fetch('/api/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ postId: postId, platform: 'meta' })
+  }).then(function(response) {
+    return readSSE(response, function(evt, done) {
+      if (evt.type === 'progress' && cell) {
+        cell.innerHTML = '<span class="spinner"></span><span style="font-size:10px;margin-left:2px;">생성...</span>';
+        cell.title = evt.message;
+      }
+      if (evt.type === 'done') {
+        onGenerateDone(postId, 'meta');
+        done({ id: postId, ok: true });
+      }
+      if (evt.type === 'error') {
+        done({ id: postId, ok: false, error: evt.message });
+      }
+    }, 'meta:' + postId);
+  }).catch(function(e) {
+    return { id: postId, ok: false, error: e.message };
+  });
+}
+
 function batchGenerateOne(postId) {
   var row = ALL_DATA.find(function(r) { return r.id === postId; });
   if (!row) { return Promise.resolve({ id: postId, ok: false, error: 'row not found' }); }
@@ -2462,7 +2756,7 @@ function formatEta(seconds) {
 async function batchGenerate(platform) {
   if (batchRunning) { showToast('배치가 이미 실행 중입니다'); return; }
   if (!SERVER_MODE) { showToast('서버 모드에서만 생성 가능합니다.'); return; }
-  if (platform !== 'naver') { showToast(platform + ' 생성은 아직 준비중입니다.'); return; }
+  if (platform !== 'naver' && platform !== 'meta') { showToast(platform + ' 생성은 아직 준비중입니다.'); return; }
 
   var ids = Array.from(selectedIds);
   if (ids.length === 0) { showToast('선택된 항목이 없습니다'); return; }
@@ -2472,7 +2766,7 @@ async function batchGenerate(platform) {
   if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
     Notification.requestPermission();
   }
-  var btn = document.getElementById('batchNaverBtn');
+  var btn = document.getElementById(platform === 'meta' ? 'batchMetaBtn' : 'batchNaverBtn');
   if (btn) btn.disabled = true;
   var failures = [];
   var skipped = 0;
@@ -2497,7 +2791,7 @@ async function batchGenerate(platform) {
 
     console.log('[batch] #' + (i+1) + '/' + ids.length + ' ' + ids[i] + ' 시작');
     try {
-      var result = await batchGenerateOne(ids[i]);
+      var result = platform === 'meta' ? await batchGenerateOneMeta(ids[i]) : await batchGenerateOne(ids[i]);
       if (result.skipped) {
         skipped++; batchState.skipped = skipped;
         console.log('[batch] #' + (i+1) + '/' + ids.length + ' ' + ids[i] + ' 결과: 스킵');
@@ -2765,6 +3059,23 @@ function main() {
     const status = loadStatus();
     let generated = 0;
 
+    // 메타 발행 JSON 스캔
+    const META_PUBLISH_DIR = path.join(ROOT, 'data', 'publish', 'meta');
+    const metaMap = {};
+    if (fs.existsSync(META_PUBLISH_DIR)) {
+      for (const f of fs.readdirSync(META_PUBLISH_DIR).filter(f => f.endsWith('.json') && !f.startsWith('_'))) {
+        try {
+          const md = JSON.parse(fs.readFileSync(path.join(META_PUBLISH_DIR, f), 'utf8'));
+          if (md.postId) metaMap[md.postId] = md;
+        } catch { /* skip */ }
+      }
+    }
+    // 메타 HTML용 postId 목록 (네비게이션) — 네이버 포스트 + 메타 전용 포스트 통합
+    const metaPostIds = [
+      ...allPostIds.filter(id => metaMap[id]),
+      ...Object.keys(metaMap).filter(id => !allPostIds.includes(id)).sort(),
+    ];
+
     posts.forEach((post, i) => {
       if (targetPostId && post.postId !== targetPostId) return;
 
@@ -2773,6 +3084,20 @@ function main() {
       const html = buildPostHtml(post, allPostIds, i, blog2Post);
       fs.writeFileSync(htmlPath, html, 'utf8');
       generated++;
+
+      // 메타 HTML 생성
+      const metaData = metaMap[post.postId];
+      if (metaData) {
+        const metaIdx = metaPostIds.indexOf(post.postId);
+        const ssotPath = path.join(SSOT_DIR, `${post.postId}.json`);
+        let ssot = null;
+        try { ssot = JSON.parse(fs.readFileSync(ssotPath, 'utf8')); } catch { /* ok */ }
+        const metaHtml = buildMetaPostHtml(metaData, ssot, {
+          prevId: metaIdx > 0 ? metaPostIds[metaIdx - 1] : null,
+          nextId: metaIdx < metaPostIds.length - 1 ? metaPostIds[metaIdx + 1] : null,
+        });
+        fs.writeFileSync(path.join(HTML_DIR, `${post.postId}_meta.html`), metaHtml, 'utf8');
+      }
 
       // Init status entry if not exists
       if (!status.posts[post.postId]) {
@@ -2784,6 +3109,25 @@ function main() {
         };
       }
     });
+
+    // 네이버 JSON 없이 메타만 있는 포스트의 HTML도 생성
+    const naverPostIdSet = new Set(allPostIds);
+    let metaOnlyCount = 0;
+    for (const [pid, metaData] of Object.entries(metaMap)) {
+      if (naverPostIdSet.has(pid)) continue; // 이미 위에서 처리
+      if (targetPostId && pid !== targetPostId) continue;
+      const ssotPath = path.join(SSOT_DIR, `${pid}.json`);
+      let ssot = null;
+      try { ssot = JSON.parse(fs.readFileSync(ssotPath, 'utf8')); } catch { /* ok */ }
+      const metaIdx = metaPostIds.indexOf(pid);
+      const metaHtml = buildMetaPostHtml(metaData, ssot, {
+        prevId: metaIdx > 0 ? metaPostIds[metaIdx - 1] : null,
+        nextId: metaIdx < metaPostIds.length - 1 ? metaPostIds[metaIdx + 1] : null,
+      });
+      fs.writeFileSync(path.join(HTML_DIR, `${pid}_meta.html`), metaHtml, 'utf8');
+      metaOnlyCount++;
+    }
+    if (metaOnlyCount > 0) console.log(`[html] 메타 전용 HTML: ${metaOnlyCount}개 생성`);
 
     if (targetPostId && generated === 0) {
       console.error(`[html] ⚠ target=${targetPostId} 매칭 실패 — V2_DIR 파일 확인 필요`);
@@ -2823,8 +3167,326 @@ function main() {
   }
 }
 
+// ── Meta(IG/FB) 발행 전용 HTML ──
+
+function buildMetaPostHtml(metaData, ssot, opts) {
+  opts = opts || {};
+  const postId = metaData.postId;
+  const prevId = opts.prevId || null;
+  const nextId = opts.nextId || null;
+
+  // 하위호환
+  const meta = metaData.meta || {};
+  const ig = meta.ig || { caption: meta.caption || '', hashtags: meta.hashtags || '', cta: meta.cta || '' };
+  const fb = meta.fb || { caption: ig.caption, cta: '' };
+
+  const car = `${(metaData.vehicle?.brand || '')} ${(metaData.vehicle?.model || '')}`.trim();
+  const workType = metaData.work?.type || '';
+  const angle = metaData.classification?.angle || '';
+  const originalUrl = metaData.originalUrl || ssot?.originalUrl || '';
+
+  // 이미지 처리 — SSOT dir > meta dir > fallback output/images/{postId}
+  let imgDir = ssot?.images?.dir || metaData.images?.dir || null;
+  if (!imgDir) {
+    const fallbackDir = `output/images/${postId}`;
+    if (fs.existsSync(path.resolve(ROOT, fallbackDir))) imgDir = fallbackDir;
+  }
+  const imgAbsDir = imgDir ? path.resolve(ROOT, imgDir) : null;
+  // 파일 목록: SSOT > meta > 디렉토리 스캔
+  let imgFiles = ssot?.images?.files?.length ? ssot.images.files : (metaData.images?.files || []);
+  if (imgFiles.length === 0 && imgAbsDir && fs.existsSync(imgAbsDir)) {
+    try {
+      imgFiles = fs.readdirSync(imgAbsDir).filter(f => /\.(jpg|jpeg|png)$/i.test(f)).sort();
+    } catch { /* ok */ }
+  }
+  const imgCount = imgFiles.length || metaData.images?.count || 0;
+
+  // IG 125자 강조
+  const igCaption = ig.caption || '';
+  const igCaptionHtml = (() => {
+    const escaped = escapeHtml(igCaption);
+    const lines = escaped.split('\n');
+    let charCount = 0;
+    let cutDone = false;
+    const result = [];
+    for (const line of lines) {
+      if (cutDone) {
+        result.push(line);
+        continue;
+      }
+      if (charCount + line.length <= 125) {
+        result.push(`<mark style="background:#fff3cd;padding:0 2px;">${line}</mark>`);
+        charCount += line.length + 1; // +1 for newline
+      } else if (charCount < 125) {
+        const remaining = 125 - charCount;
+        result.push(`<mark style="background:#fff3cd;padding:0 2px;">${line.slice(0, remaining)}</mark>${line.slice(remaining)}`);
+        cutDone = true;
+      } else {
+        result.push(line);
+        cutDone = true;
+      }
+    }
+    return result.join('<br>\n');
+  })();
+
+  const fbCaptionHtml = escapeHtml(fb.caption || '').split('\n').map(line => {
+    // URL 하이라이트
+    return line.replace(/(https?:\/\/[^\s&<]+)/g, '<a href="$1" target="_blank" style="color:#1a73e8;text-decoration:underline;">$1</a>');
+  }).join('<br>\n');
+
+  // 이미지 썸네일 + 개별 경로 목록 HTML
+  let thumbsHtml = '';
+  let imgPathListHtml = '';
+  const imgAbsPaths = [];
+  if (imgAbsDir && imgFiles.length > 0) {
+    thumbsHtml = '<div style="display:flex;gap:8px;overflow-x:auto;padding:8px 0;">\n';
+    imgFiles.forEach((f, idx) => {
+      const absPath = path.join(imgAbsDir, f);
+      imgAbsPaths.push(absPath);
+      const b64 = imgToBase64(absPath);
+      if (b64) {
+        thumbsHtml += `<img src="${b64}" alt="사진${idx+1}" style="width:60px;height:60px;object-fit:cover;border-radius:4px;border:1px solid #ddd;cursor:pointer;flex-shrink:0;" onclick="this.style.width=this.style.width==='60px'?'300px':'60px';this.style.height=this.style.height==='60px'?'auto':'60px';" loading="lazy">\n`;
+      }
+    });
+    thumbsHtml += '</div>\n';
+
+    // 개별 이미지 절대 경로 목록 (네이버 발행 페이지와 동일 패턴)
+    imgPathListHtml = '<details style="margin-top:8px;"><summary style="cursor:pointer;font-size:12px;color:#888;">개별 이미지 경로 (클릭하여 펼치기)</summary>\n';
+    imgFiles.forEach((f, idx) => {
+      const absPath = imgAbsPaths[idx];
+      imgPathListHtml += `<div style="display:flex;align-items:center;gap:8px;margin:2px 0;padding:4px 8px;background:#fff;border-radius:4px;border:1px solid #eee;cursor:pointer;" onclick="copyText(META_IMG_PATHS[${idx}],'사진${idx+1} 경로 복사됨!')">`;
+      imgPathListHtml += `<span style="font-size:12px;color:#888;font-weight:600;min-width:30px;">📷${idx+1}.</span>`;
+      imgPathListHtml += `<span style="font-size:11px;color:#555;font-family:monospace;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(absPath)}</span>`;
+      imgPathListHtml += `</div>\n`;
+    });
+    imgPathListHtml += '</details>\n';
+  }
+
+  // IG/FB 복사용 텍스트
+  const igFullText = igCaption + (ig.hashtags ? '\n\n' + ig.hashtags : '');
+  const fbFullText = fb.caption || '';
+
+  return `<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>메타 발행 — ${escapeHtml(car)} ${escapeHtml(workType)}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700&display=swap');
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 0; font-family: '나눔고딕','NanumGothic','Nanum Gothic','Malgun Gothic',sans-serif; background: #fafafa; }
+
+  .control-bar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
+    background: #2d2d2d; color: #eee; padding: 8px 16px;
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    font-size: 13px; box-shadow: 0 2px 8px rgba(0,0,0,.3);
+    -webkit-user-select: none; user-select: none;
+  }
+  .control-bar a { color: #7ecfff; text-decoration: none; }
+  .control-bar a:hover { text-decoration: underline; }
+  .control-bar .meta-item { background: #444; padding: 3px 8px; border-radius: 4px; font-size: 12px; }
+  .control-bar .btn {
+    border: none; padding: 5px 12px; border-radius: 4px; cursor: pointer;
+    font-size: 12px; font-weight: 600; color: #fff;
+  }
+  .control-bar .btn-ig { background: #E1306C; }
+  .control-bar .btn-ig:hover { background: #c1255a; }
+  .control-bar .btn-fb { background: #1877F2; }
+  .control-bar .btn-fb:hover { background: #1565c0; }
+  .control-bar .btn-publish { background: #03c75a; }
+  .control-bar .btn-publish:hover { background: #02b050; }
+  .control-bar .btn-nav {
+    background: #555; color: #fff; border: none; padding: 5px 10px;
+    border-radius: 4px; cursor: pointer; font-size: 12px;
+  }
+  .control-bar .btn-nav:hover { background: #777; }
+  .control-bar .btn-nav:disabled { opacity: .3; cursor: default; }
+
+  .page-wrap { max-width: 960px; margin: 70px auto 40px; padding: 0 16px; }
+
+  .ref-section {
+    background: #f8f8f8; padding: 16px 20px; border-radius: 8px;
+    border: 1px solid #e0e0e0; font-size: 13px; color: #666; margin-bottom: 20px;
+  }
+  .ref-section summary { cursor: pointer; font-weight: 600; color: #555; font-size: 14px; }
+  .ref-row { margin: 6px 0; }
+  .ref-row .label { font-weight: 600; color: #555; }
+
+  .columns {
+    display: flex; gap: 20px; flex-wrap: wrap;
+  }
+  .col-ig, .col-fb {
+    flex: 1; min-width: 300px; background: #fff; border-radius: 8px;
+    padding: 20px 24px; box-shadow: 0 1px 4px rgba(0,0,0,.08);
+  }
+  .col-ig { border-top: 3px solid #E1306C; }
+  .col-fb { border-top: 3px solid #1877F2; }
+  .col-ig h2 { color: #E1306C; font-size: 16px; margin: 0 0 12px; }
+  .col-fb h2 { color: #1877F2; font-size: 16px; margin: 0 0 12px; }
+
+  .caption-box {
+    background: #fafafa; border: 1px solid #eee; border-radius: 6px;
+    padding: 14px 16px; font-size: 14px; line-height: 1.8; color: #333;
+    white-space: pre-wrap; word-break: break-word; margin-bottom: 12px;
+  }
+  .hashtag-box {
+    background: #f0f4ff; border: 1px solid #d8e0f0; border-radius: 6px;
+    padding: 10px 14px; font-size: 14px; color: #1a73e8; margin-bottom: 12px;
+  }
+  .copy-all-btn {
+    display: block; width: 100%; padding: 10px; border: none; border-radius: 6px;
+    font-size: 14px; font-weight: 600; color: #fff; cursor: pointer; margin-top: 8px;
+  }
+  .copy-all-btn.ig { background: #E1306C; }
+  .copy-all-btn.ig:hover { background: #c1255a; }
+  .copy-all-btn.fb { background: #1877F2; }
+  .copy-all-btn.fb:hover { background: #1565c0; }
+
+  .img-section {
+    background: #fff; border-radius: 8px; padding: 16px 20px; margin-top: 20px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.08);
+  }
+
+  .toast {
+    position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+    background: #333; color: #fff; padding: 10px 24px; border-radius: 8px;
+    font-size: 14px; z-index: 99999; opacity: 0; transition: opacity .3s;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+
+  @media (max-width: 700px) {
+    .columns { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══ CONTROL BAR ═══ -->
+<div class="control-bar">
+  <button class="btn-nav" onclick="location.href='${prevId ? prevId + '_meta.html' : '#'}'" ${!prevId ? 'disabled' : ''}>◀이전</button>
+  <a href="_index.html" id="dashListLink">📋목록</a>
+  <button class="btn-nav" onclick="location.href='${nextId ? nextId + '_meta.html' : '#'}'" ${!nextId ? 'disabled' : ''}>다음▶</button>
+
+  <span class="meta-item">${escapeHtml(car)}</span>
+  <span class="meta-item">${escapeHtml(workType)}</span>
+  <span class="meta-item">📷${imgCount}장</span>
+  ${originalUrl ? `<a href="${escapeHtml(originalUrl)}" target="_blank" style="font-size:12px;">📎원문</a>` : ''}
+
+  <button class="btn btn-ig" onclick="copyIg()">📋 IG 복사</button>
+  <button class="btn btn-fb" onclick="copyFb()">📋 FB 복사</button>
+  <button class="btn btn-publish" onclick="markMetaPublished()">✅ 발행마킹</button>
+</div>
+
+<div class="page-wrap">
+
+<!-- ═══ 참고 정보 (접이식) ═══ -->
+<details class="ref-section" open>
+  <summary>참고 정보</summary>
+  <div class="ref-row"><span class="label">차량:</span> ${escapeHtml(car)} | <span class="label">작업:</span> ${escapeHtml(workType)}</div>
+  <div class="ref-row"><span class="label">앵글:</span> ${escapeHtml(angle)}${originalUrl ? ` | <span class="label">원문:</span> <a href="${escapeHtml(originalUrl)}" target="_blank" style="color:#1a73e8;">${escapeHtml(originalUrl)}</a>` : ''}</div>
+  <div class="ref-row"><span class="label">이미지:</span> ${imgCount}장${imgAbsDir ? ` <button onclick="copyText(IMG_FOLDER,'폴더 경로 복사됨!')" style="background:#eee;border:1px solid #ccc;padding:2px 8px;border-radius:4px;cursor:pointer;font-size:12px;margin-left:6px;">📂 폴더 경로 복사</button>` : ' (추출 필요)'}</div>
+</details>
+
+<!-- ═══ IG / FB 2단 ═══ -->
+<div class="columns">
+  <div class="col-ig">
+    <h2>Instagram</h2>
+    <div style="font-size:11px;color:#888;margin-bottom:8px;">캡션 (첫 125자 = 피드 노출 영역)</div>
+    <div class="caption-box">${igCaptionHtml}</div>
+    <div style="font-size:11px;color:#888;margin-bottom:4px;">해시태그</div>
+    <div class="hashtag-box">${escapeHtml(ig.hashtags || '')}</div>
+    <button class="copy-all-btn ig" onclick="copyIg()">📋 IG 전체 복사 (캡션+해시태그)</button>
+  </div>
+
+  <div class="col-fb">
+    <h2>Facebook</h2>
+    <div style="font-size:11px;color:#888;margin-bottom:8px;">캡션 (URL 미포함 — 링크는 댓글로)</div>
+    <div class="caption-box">${fbCaptionHtml}</div>
+    <button class="copy-all-btn fb" onclick="copyFb()">📋 FB 캡션 복사</button>
+    ${(fb.cta && fb.cta.includes('http')) ? `<button class="copy-all-btn fb" onclick="copyFbComment()" style="margin-top:6px;background:#1565c0;">📋 FB 댓글용 링크 복사</button>` : ''}
+  </div>
+</div>
+
+<!-- ═══ 이미지 섹션 ═══ -->
+${imgAbsDir ? `<div class="img-section">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+    <strong>이미지 (${imgCount}장)</strong>
+    <button onclick="copyText(IMG_FOLDER,'폴더 경로 복사됨!')" style="background:#03c75a;color:#fff;border:none;padding:6px 14px;border-radius:4px;cursor:pointer;font-size:13px;font-weight:600;">📂 이미지 폴더 경로 복사</button>
+  </div>
+  <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:6px;padding:10px 14px;margin-bottom:10px;font-family:monospace;font-size:12px;color:#555;word-break:break-all;cursor:pointer;" onclick="copyText(IMG_FOLDER,'폴더 경로 복사됨!')" title="클릭하여 복사">${escapeHtml(imgAbsDir)}</div>
+  <p style="font-size:12px;color:#666;margin:0 0 10px;line-height:1.6;">
+    <strong>첨부 방법:</strong> 위 경로 복사 → <kbd style="background:#eee;padding:1px 5px;border-radius:3px;border:1px solid #ccc;">Win+R</kbd> 또는 탐색기 주소창에 붙여넣기 → 이미지 전체 선택 → Business Suite에 드래그&드롭
+  </p>
+  ${thumbsHtml}
+  ${imgPathListHtml}
+</div>` : (imgCount > 0 ? `<div class="img-section">
+  <strong>이미지 ${imgCount}장 (추출 필요)</strong>
+  <p style="font-size:12px;color:#888;margin:8px 0 0;">대시보드에서 이미지 추출 후 이 페이지를 새로고침하세요.</p>
+</div>` : '')}
+
+</div><!-- page-wrap -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+var POST_ID = ${JSON.stringify(postId)};
+var IG_FULL = ${JSON.stringify(igFullText)};
+var FB_FULL = ${JSON.stringify(fbFullText)};
+var FB_COMMENT = ${JSON.stringify(fb.cta || '')};
+var IMG_FOLDER = ${JSON.stringify(imgAbsDir || '')};
+var META_IMG_PATHS = ${JSON.stringify(imgAbsPaths)};
+
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, 2000);
+}
+
+function copyText(text, msg) {
+  navigator.clipboard.writeText(text).then(function() { showToast(msg || '복사됨!'); }).catch(function() { prompt('복사:', text); });
+}
+
+function copyIg() {
+  copyText(IG_FULL, 'IG 캡션+해시태그 복사됨!');
+}
+
+function copyFb() {
+  copyText(FB_FULL, 'FB 캡션 복사됨!');
+}
+
+function copyFbComment() {
+  copyText(FB_COMMENT, 'FB 댓글용 링크 복사됨!');
+}
+
+function markMetaPublished() {
+  if (typeof window.__SERVER_MODE__ !== 'undefined' && window.__SERVER_MODE__) {
+    fetch('/api/mark-published', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ postId: POST_ID, platform: 'meta' })
+    }).then(function() { showToast('발행 마킹 완료!'); })
+      .catch(function() { showToast('발행 마킹 실패'); });
+  } else {
+    showToast('서버 모드에서만 발행 마킹 가능');
+  }
+}
+
+// Server mode: fix dashboard link
+if (location.protocol === 'http:' || location.protocol === 'https:') {
+  var link = document.getElementById('dashListLink');
+  if (link) link.href = '/dashboard';
+}
+</script>
+</body>
+</html>`;
+}
+
 // ── Exports (빌드 스크립트에서 import) ──
-export { buildIndexHtml, buildPostHtml, scanPosts, absImgDir, ROOT, V2_DIR, HTML_DIR, SSOT_DIR };
+export { buildIndexHtml, buildPostHtml, buildMetaPostHtml, scanPosts, absImgDir, ROOT, V2_DIR, HTML_DIR, SSOT_DIR };
 
 // ── 직접 실행 시에만 main() 호출 ──
 // Windows 한글 경로에서 fork() 시 유니코드 정규화(NFC/NFD) 차이로

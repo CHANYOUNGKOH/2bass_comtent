@@ -682,9 +682,10 @@ async function handler(req, res) {
         const msg = d.toString().trim();
         if (msg) send('log', { message: msg });
       });
-      proc.on('close', code => {
+      proc.on('close', async (code) => {
         if (code !== 0) {
           send('error', { message: `이미지 추출 실패 (exit ${code})` });
+          res.end();
         } else {
           // manifest에서 추출 결과 읽기
           const manifest = loadManifest();
@@ -692,13 +693,22 @@ async function handler(req, res) {
           const extracted = entry.count || 0;
           const expected = entry.expected || 0;
           const incomplete = expected > 0 && extracted < expected;
+
+          // HTML 재빌드 (이미지 경로 갱신 — 네이버 + 메타)
+          try {
+            send('progress', { message: 'HTML 갱신 중...' });
+            await runScript(path.join(ROOT, 'scripts/naver-blog-publish-html.js'), [postId]);
+          } catch (htmlErr) {
+            console.error(`[extract-images] HTML 재빌드 실패:`, htmlErr.message);
+          }
+
           send('done', {
             ok: true, postId, count: extracted,
             ...(incomplete && { warning: `${expected}장 중 ${extracted}장만 추출됨 (${expected - extracted}장 누락)` })
           });
           console.log(`[extract-images] ${postId} 완료 (${extracted}장${incomplete ? ` ⚠ 기대:${expected}` : ''})`);
+          res.end();
         }
-        res.end();
       });
       proc.on('error', err => {
         send('error', { message: err.message });
@@ -737,8 +747,71 @@ async function handler(req, res) {
       send('start', { postId, target });
       console.log(`[generate] ${postId} / ${platform}${target ? '/' + target : ''} 시작`);
 
+      // ── 메타(인스타) 생성 분기 ──
+      if (platform === 'meta') {
+        const META_PUBLISH_DIR = path.join(ROOT, 'data/publish/meta');
+        const metaFile = path.join(META_PUBLISH_DIR, `${postId}.json`);
+        if (fs.existsSync(metaFile)) {
+          send('done', { ok: true, postId, platform: 'meta', skipped: true });
+          res.end();
+          return;
+        }
+        send('progress', { message: '메타 캡션 생성 시작...' });
+        const metaScript = path.join(ROOT, 'scripts/content-generate-meta.js');
+
+        function runScriptSSE_meta(scriptPath, args) {
+          return new Promise((resolve, reject) => {
+            const proc = fork(scriptPath, args, { cwd: ROOT, silent: true });
+            let lastStderr = '';
+            proc.stdout.on('data', d => {
+              const msg = d.toString().trim();
+              if (msg) {
+                console.log(`  ┃ ${msg}`);
+                send('progress', { message: msg });
+              }
+            });
+            proc.stderr.on('data', d => {
+              const msg = d.toString().trim();
+              if (msg) {
+                lastStderr = msg;
+                console.error(`  ┃ ${msg}`);
+                send('log', { message: msg });
+              }
+            });
+            proc.on('close', code => {
+              if (code !== 0) reject(new Error(`exit ${code}: ${lastStderr}`));
+              else resolve();
+            });
+            proc.on('error', reject);
+          });
+        }
+
+        try {
+          await runScriptSSE_meta(metaScript, [postId]);
+          const generated = fs.existsSync(metaFile);
+          if (generated) {
+            // 메타 HTML 재빌드 (이미지 경로 포함)
+            send('progress', { message: '메타 HTML 생성 중...' });
+            try {
+              await runScriptSSE_meta(path.join(ROOT, 'scripts/naver-blog-publish-html.js'), [postId]);
+            } catch (htmlErr) {
+              console.error(`[generate] 메타 HTML 생성 실패:`, htmlErr.message);
+              send('warning', { message: `메타 HTML 생성 실패: ${htmlErr.message}` });
+            }
+            console.log(`[generate] ${postId} / meta 완료`);
+            send('done', { ok: true, postId, platform: 'meta', generated: ['meta'] });
+          } else {
+            send('error', { message: '메타 캡션 생성 실패 — 서버 로그를 확인하세요' });
+          }
+        } catch (e) {
+          send('error', { message: `메타 생성 실패: ${e.message}` });
+        }
+        res.end();
+        return;
+      }
+
       if (platform !== 'naver') {
-        send('error', { message: `지원하지 않는 플랫폼: ${platform}. 현재 naver만 가능` });
+        send('error', { message: `지원하지 않는 플랫폼: ${platform}. 현재 naver/meta만 가능` });
         res.end();
         return;
       }
@@ -976,6 +1049,73 @@ async function handler(req, res) {
       blog: fs.existsSync(blogPath),
       html: fs.existsSync(htmlPath),
     });
+    return;
+  }
+
+  // ── GET /api/meta-preview/:postId — 메타 미리보기 데이터 ──
+  if (req.method === 'GET' && pathname.startsWith('/api/meta-preview/')) {
+    const postId = pathname.split('/api/meta-preview/')[1];
+    if (!postId) return json(res, 400, { error: 'postId 필수' });
+
+    const META_PUBLISH_DIR = path.join(ROOT, 'data/publish/meta');
+    const metaFile = path.join(META_PUBLISH_DIR, `${postId}.json`);
+    if (!fs.existsSync(metaFile)) {
+      return json(res, 404, { error: '메타 콘텐츠 없음' });
+    }
+    try {
+      const metaData = JSON.parse(fs.readFileSync(metaFile, 'utf8'));
+      // 이미지 파일 경로 목록 구성
+      const images = [];
+      if (metaData.images?.dir && metaData.images?.files?.length) {
+        for (const f of metaData.images.files) {
+          images.push(`/output/images/${postId}/${f}`);
+        }
+      } else if (metaData.images?.dir) {
+        const imgDir = path.resolve(ROOT, metaData.images.dir);
+        try {
+          const imgFiles = fs.readdirSync(imgDir).filter(f => /\.(jpg|jpeg|png)$/i.test(f)).sort();
+          for (const f of imgFiles) {
+            images.push(`/output/images/${postId}/${f}`);
+          }
+        } catch { /* dir not found */ }
+      }
+
+      // 하위호환: 기존 { meta: { caption, hashtags, cta } } → ig로 취급
+      const meta = metaData.meta || {};
+      const ig = meta.ig || {
+        caption: meta.caption || '',
+        hashtags: meta.hashtags || '',
+        cta: meta.cta || '',
+      };
+      const fb = meta.fb || {
+        caption: ig.caption,
+        cta: '아래 링크에서 상담/예약하세요',
+      };
+
+      json(res, 200, {
+        postId: metaData.postId,
+        ig: {
+          caption: ig.caption || '',
+          hashtags: ig.hashtags || '',
+          cta: ig.cta || '',
+        },
+        fb: {
+          caption: fb.caption || '',
+          cta: fb.cta || '',
+        },
+        // 하위호환: 기존 필드도 유지 (ig 기준)
+        caption: ig.caption || '',
+        hashtags: ig.hashtags || '',
+        cta: ig.cta || '',
+        vehicle: metaData.vehicle || {},
+        work: metaData.work || {},
+        images,
+        imageCount: images.length || metaData.images?.count || 0,
+        generatedAt: metaData.generatedAt || '',
+      });
+    } catch (e) {
+      json(res, 500, { error: e.message });
+    }
     return;
   }
 
