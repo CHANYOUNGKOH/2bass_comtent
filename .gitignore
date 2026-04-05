@@ -1,6 +1,7 @@
 # 민감 정보
 .env
 .env.local
+google-tts-key.json
 *.log
 npm-debug.log*
 
